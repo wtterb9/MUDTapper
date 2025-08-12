@@ -1510,6 +1510,12 @@ extension AutomationEditorViewController: UITableViewDataSource, UITableViewDele
     }
 
     private func makePatternHelpAccessory() -> UIView {
+        let examplesButton = UIButton(type: .system)
+        examplesButton.setTitle("Examples", for: .normal)
+        examplesButton.titleLabel?.font = UIFont.systemFont(ofSize: 13, weight: .semibold)
+        examplesButton.addTarget(self, action: #selector(patternExamplesTapped), for: .touchUpInside)
+        examplesButton.setContentHuggingPriority(.required, for: .horizontal)
+
         let helpButton = UIButton(type: .system)
         helpButton.setTitle("Help", for: .normal)
         helpButton.titleLabel?.font = UIFont.systemFont(ofSize: 13, weight: .semibold)
@@ -1520,7 +1526,7 @@ extension AutomationEditorViewController: UITableViewDataSource, UITableViewDele
         chevron.tintColor = .tertiaryLabel
         chevron.setContentHuggingPriority(.defaultHigh, for: .horizontal)
         
-        let stack = UIStackView(arrangedSubviews: [helpButton, chevron])
+        let stack = UIStackView(arrangedSubviews: [examplesButton, helpButton, chevron])
         stack.axis = .horizontal
         stack.spacing = 6
         return stack
@@ -1530,6 +1536,37 @@ extension AutomationEditorViewController: UITableViewDataSource, UITableViewDele
         let vc = TriggerScriptingHelpViewController(scrollTo: .patterns)
         let nav = UINavigationController(rootViewController: vc)
         present(nav, animated: true)
+    }
+
+    @objc private func patternExamplesTapped() {
+        let sheet = UIAlertController(title: "Insert Pattern Example", message: nil, preferredStyle: .actionSheet)
+        // Wildcard examples
+        sheet.addAction(UIAlertAction(title: "Wildcard: * arrives.", style: .default) { [weak self] _ in
+            self?.setPatternExample("* arrives.")
+        })
+        sheet.addAction(UIAlertAction(title: "Wildcard: You are *.", style: .default) { [weak self] _ in
+            self?.setPatternExample("You are *.")
+        })
+        // Regex examples
+        sheet.addAction(UIAlertAction(title: "Regex: ^(?<name>\\w+) arrives\\.$", style: .default) { [weak self] _ in
+            self?.setPatternExample("^(?<name>\\w+) arrives\\.$")
+        })
+        sheet.addAction(UIAlertAction(title: "Regex: HP: (?<hp>\\d+)/(?:\\d+)", style: .default) { [weak self] _ in
+            self?.setPatternExample("HP: (?<hp>\\d+)/(?:\\d+)")
+        })
+        sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        if let pop = sheet.popoverPresentationController {
+            pop.sourceView = view
+            pop.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 1, height: 1)
+        }
+        present(sheet, animated: true)
+    }
+    
+    private func setPatternExample(_ example: String) {
+        formData["pattern"] = example
+        tableView.reloadData()
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
