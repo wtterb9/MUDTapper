@@ -291,6 +291,10 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
             action: #selector(connectButtonTapped)
         )
         
+        // Latency display (disabled button text)
+        let latencyItem = UIBarButtonItem(title: latencyDisplayText(), style: .plain, target: nil, action: nil)
+        latencyItem.isEnabled = false
+
         // Always show settings button
         let settingsButton = UIBarButtonItem(
             image: UIImage(systemName: "gear"),
@@ -299,7 +303,12 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
             action: #selector(settingsButtonTapped)
         )
         
-        navigationToolbar.items = [worldButton, flexSpace, connectButton, settingsButton]
+        navigationToolbar.items = [worldButton, flexSpace, connectButton, latencyItem, settingsButton]
+    }
+
+    private func latencyDisplayText() -> String {
+        let ms = mudSocket?.lastLatencyMs ?? 0
+        return ms > 0 ? "\(ms) ms" : "– ms"
     }
     
     private func setupMudView() {
@@ -2662,6 +2671,13 @@ extension ClientViewController: MUDSocketDelegate {
                 // Notify delegate
                 self.delegate?.clientDidReceiveText(self)
             }
+        }
+    }
+
+    func mudSocket(_ socket: MUDSocket, didUpdateLatencyMs latencyMs: Int) {
+        // Update latency item in toolbar
+        DispatchQueue.main.async {
+            self.updateNavigationToolbar()
         }
     }
     

@@ -10,12 +10,9 @@ protocol MUDSocketDelegate: AnyObject {
     func mudSocket(_ socket: MUDSocket, didDisconnectWithError error: Error?)
     func mudSocket(_ socket: MUDSocket, didReceiveData data: Data)
     func mudSocket(_ socket: MUDSocket, didWriteDataWithTag tag: Int)
+    func mudSocket(_ socket: MUDSocket, didUpdateLatencyMs latencyMs: Int)
 }
 
-// Provide default empty implementations so new delegate callbacks are optional
-extension MUDSocketDelegate {
-    func mudSocket(_ socket: MUDSocket, didUpdateLatencyMs latencyMs: Int) {}
-}
 
 class MUDSocket: NSObject {
     
