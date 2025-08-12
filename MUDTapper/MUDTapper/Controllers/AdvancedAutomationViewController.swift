@@ -1690,9 +1690,9 @@ class AutomationTesterViewController: UIViewController {
                 var expandedCommands = alias.commands ?? ""
                 
                 // Simple parameter substitution
-                for (index, arg) in parts.dropFirst().enumerated() {
-                    expandedCommands = expandedCommands.replacingOccurrences(of: "$\\(index + 1)$", with: arg)
-                }
+        for (idx, arg) in parts.dropFirst().enumerated() {
+            expandedCommands = expandedCommands.replacingOccurrences(of: "$\\(idx + 1)$", with: arg)
+        }
                 expandedCommands = expandedCommands.replacingOccurrences(of: "$*$", with: parts.dropFirst().joined(separator: " "))
                 
                 let result = TestResult(

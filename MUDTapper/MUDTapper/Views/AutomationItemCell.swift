@@ -111,12 +111,13 @@ class AutomationItemCell: UITableViewCell {
     
     private func setupButtons() {
         quickToggleButton.translatesAutoresizingMaskIntoConstraints = false
-        quickToggleButton.setTitle("Toggle", for: .normal)
-        quickToggleButton.setTitleColor(.systemBlue, for: .normal)
-        quickToggleButton.titleLabel?.font = UIFont.systemFont(ofSize: 12, weight: .medium)
-        quickToggleButton.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.1)
-        quickToggleButton.layer.cornerRadius = 6
-        quickToggleButton.contentEdgeInsets = UIEdgeInsets(top: 4, left: 8, bottom: 4, right: 8)
+        var config = UIButton.Configuration.filled()
+        config.title = "Toggle"
+        config.cornerStyle = .capsule
+        config.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8)
+        config.baseForegroundColor = .systemBlue
+        config.baseBackgroundColor = UIColor.systemBlue.withAlphaComponent(0.1)
+        quickToggleButton.configuration = config
         quickToggleButton.addTarget(self, action: #selector(quickToggleButtonTapped), for: .touchUpInside)
         
         containerView.addSubview(quickToggleButton)
@@ -198,11 +199,13 @@ class AutomationItemCell: UITableViewCell {
         }
         
         // Quick toggle button
-        quickToggleButton.setTitle(item.isEnabled ? "Disable" : "Enable", for: .normal)
-        quickToggleButton.backgroundColor = item.isEnabled ? 
-            UIColor.systemRed.withAlphaComponent(0.1) : 
+        var buttonConfig = quickToggleButton.configuration ?? UIButton.Configuration.filled()
+        buttonConfig.title = item.isEnabled ? "Disable" : "Enable"
+        buttonConfig.baseBackgroundColor = item.isEnabled ?
+            UIColor.systemRed.withAlphaComponent(0.1) :
             UIColor.systemGreen.withAlphaComponent(0.1)
-        quickToggleButton.setTitleColor(item.isEnabled ? .systemRed : .systemGreen, for: .normal)
+        buttonConfig.baseForegroundColor = item.isEnabled ? .systemRed : .systemGreen
+        quickToggleButton.configuration = buttonConfig
         
         // Container border color based on status
         containerView.layer.borderColor = item.isEnabled ? 
