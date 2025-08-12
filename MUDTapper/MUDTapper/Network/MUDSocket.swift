@@ -3,12 +3,18 @@ import Network
 import SystemConfiguration
 import UIKit
 import AVFoundation
+import Compression
 
 protocol MUDSocketDelegate: AnyObject {
     func mudSocket(_ socket: MUDSocket, didConnectToHost host: String, port: UInt16)
     func mudSocket(_ socket: MUDSocket, didDisconnectWithError error: Error?)
     func mudSocket(_ socket: MUDSocket, didReceiveData data: Data)
     func mudSocket(_ socket: MUDSocket, didWriteDataWithTag tag: Int)
+}
+
+// Provide default empty implementations so new delegate callbacks are optional
+extension MUDSocketDelegate {
+    func mudSocket(_ socket: MUDSocket, didUpdateLatencyMs latencyMs: Int) {}
 }
 
 class MUDSocket: NSObject {
@@ -72,6 +78,20 @@ class MUDSocket: NSObject {
     
     var connectedHost: String?
     var connectedPort: UInt16 = 0
+    
+    // Telnet feature flags and state
+    private var gmcpEnabled: Bool = false
+    private var msdpEnabled: Bool = false
+    
+    // MCCP (compression) state
+    private var mccpActive: Bool = false
+    private var decompressionStream: compression_stream?
+    private var decompressionStreamInitialized: Bool = false
+    
+    // Latency probe
+    private var latencyProbeSentAt: Date?
+    private var awaitingLatencyProbe: Bool = false
+    private(set) var lastLatencyMs: Int = 0
     
     // MARK: - Initialization
     
@@ -211,6 +231,8 @@ class MUDSocket: NSObject {
     }
     
     func disconnect() {
+        // Clean up compression if active
+        endDecompression()
         stopKeepAliveTimer()
         stopReconnectTimer()
         stopNetworkMonitoring()
@@ -412,6 +434,9 @@ class MUDSocket: NSObject {
         } else {
             // Foreground - just send a newline (most servers echo this or ignore silently)
             keepAliveData = "\n".data(using: .utf8)!
+            // Mark as latency probe
+            latencyProbeSentAt = Date()
+            awaitingLatencyProbe = true
         }
         
         // Send with completion tracking for background failure detection
@@ -438,6 +463,10 @@ class MUDSocket: NSObject {
                 if self?.isInBackground == true {
                     self?.backgroundSuccessfulKeepalives += 1
                     self?.updateConnectionQuality(success: true)
+                }
+                // If this was a foreground latency probe and no immediate error, we wait for next data to compute latency
+                if self?.isInBackground == false {
+                    // no-op here; handled when data arrives
                 }
             }
         })
@@ -1164,8 +1193,12 @@ class MUDSocket: NSObject {
             print("MUDSocket: Connection is ready")
             #endif
             reconnectAttempts = 0 // Reset reconnection attempts on successful connection
+            // Proactively negotiate options and advertise capabilities
+            proactivelyNegotiateTelnetOptions()
             // Send MSDP XTERM_256_COLORS=1 to server
             sendXterm256Colors()
+            // Send GMCP hello if enabled (server may also drive this)
+            if gmcpEnabled { sendGMCPHello() }
             DispatchQueue.main.async {
                 self.delegate?.mudSocket(self, didConnectToHost: self.connectedHost ?? "", port: self.connectedPort)
             }
@@ -1282,12 +1315,20 @@ class MUDSocket: NSObject {
                 self?.lastDataReceiveTime = Date()
                 self?.consecutiveKeepAliveFailures = 0 // Reset failure counter on successful data
                 
-                // Try multiple encodings commonly used by MUD servers
-                _ = self?.decodeDataToString(data)
-                
+                // Process telnet negotiation, compression, and extract plain payload
                 let filtered = self?.handleTelnetNegotiation(data) ?? data
                 DispatchQueue.main.async {
-                    self?.delegate?.mudSocket(self!, didReceiveData: filtered)
+                    if !filtered.isEmpty {
+                        // If waiting on a latency probe, compute latency on first received payload
+                        if let sentAt = self?.latencyProbeSentAt, self?.awaitingLatencyProbe == true, self?.isInBackground == false {
+                            let ms = Int(Date().timeIntervalSince(sentAt) * 1000)
+                            self?.lastLatencyMs = ms
+                            self?.awaitingLatencyProbe = false
+                            self?.latencyProbeSentAt = nil
+                            self?.delegate?.mudSocket(self!, didUpdateLatencyMs: ms)
+                        }
+                        self?.delegate?.mudSocket(self!, didReceiveData: filtered)
+                    }
                 }
             } else {
                 #if DEBUG
@@ -1374,41 +1415,226 @@ class MUDSocket: NSObject {
     private let IAC: UInt8 = 255
     private let DO: UInt8 = 253
     private let WILL: UInt8 = 251
+    private let DONT: UInt8 = 254
+    private let WONT: UInt8 = 252
     private let SB: UInt8 = 250
     private let SE: UInt8 = 240
     private let TTYPE: UInt8 = 24
     private let SEND: UInt8 = 1
     private let IS: UInt8 = 0
+    private let GMCP: UInt8 = 201
+    private let MSDP: UInt8 = 69
+    private let COMPRESS: UInt8 = 85
+    private let COMPRESS2: UInt8 = 86
 
     private func handleTelnetNegotiation(_ data: Data) -> Data {
+        // If MCCP is active, the entire stream is compressed; just decompress and return
+        if mccpActive {
+            return decompressData(data)
+        }
         var i = 0
         var filteredData = Data()
         let bytes = [UInt8](data)
         while i < bytes.count {
-            if bytes[i] == IAC {
-                if i + 2 < bytes.count && bytes[i+1] == DO && bytes[i+2] == TTYPE {
-                    // Respond to IAC DO TTYPE with IAC WILL TTYPE
-                    let response: [UInt8] = [IAC, WILL, TTYPE]
-                    print("[TTYPE] Responding to IAC DO TTYPE with IAC WILL TTYPE")
-                    send(Data(response))
-                    i += 3
-                    continue
-                } else if i + 5 < bytes.count && bytes[i+1] == SB && bytes[i+2] == TTYPE && bytes[i+3] == SEND && bytes[i+4] == IAC && bytes[i+5] == SE {
-                    // Respond to IAC SB TTYPE SEND IAC SE with IAC SB TTYPE IS "xterm-256color" IAC SE
-                    let ttypeString = "xterm-256color"
-                    var response: [UInt8] = [IAC, SB, TTYPE, IS]
-                    response.append(contentsOf: ttypeString.utf8)
-                    response.append(contentsOf: [IAC, SE])
-                    print("[TTYPE] Responding to TTYPE SEND with xterm-256color")
-                    send(Data(response))
-                    i += 6
-                    continue
+            let byte = bytes[i]
+            if byte == IAC {
+                // Ensure we have at least a verb and option
+                if i + 1 < bytes.count {
+                    let verb = bytes[i+1]
+                    // Subnegotiation
+                    if verb == SB {
+                        if i + 2 < bytes.count {
+                            let opt = bytes[i+2]
+                            // Find end of subnegotiation: IAC SE
+                            var j = i + 3
+                            var foundEnd = false
+                            while j + 1 < bytes.count {
+                                if bytes[j] == IAC && bytes[j+1] == SE {
+                                    foundEnd = true
+                                    break
+                                }
+                                j += 1
+                            }
+                            let payloadRange = (i + 3)..<max(i + 3, min(j, bytes.count))
+                            let payload = Data(bytes[payloadRange])
+                            if opt == TTYPE {
+                                // TTYPE SEND → reply with IS "xterm-256color"
+                                if payload.count == 1 && payload.first == SEND {
+                                    var response: [UInt8] = [IAC, SB, TTYPE, IS]
+                                    response.append(contentsOf: "xterm-256color".utf8)
+                                    response.append(contentsOf: [IAC, SE])
+                                    print("[TTYPE] Responding to TTYPE SEND with xterm-256color")
+                                    send(Data(response))
+                                }
+                            } else if opt == GMCP {
+                                // GMCP payload is text – don't forward to output; optionally handle
+                                if let text = String(data: payload, encoding: .utf8) {
+                                    print("[GMCP] <- \(text)")
+                                }
+                            } else if opt == MSDP {
+                                // MSDP payload; ignore for now
+                                print("[MSDP] Subnegotiation received (\(payload.count) bytes)")
+                            } else if opt == COMPRESS2 || opt == COMPRESS {
+                                // Start MCCP(after IAC SB COMPRESS[2] IAC SE); compressed data may follow in same buffer
+                                print("[MCCP] Compression negotiation complete; enabling decompression")
+                                startDecompression()
+                                mccpActive = true
+                                // If there is data after IAC SE in this buffer, treat it as compressed
+                                if foundEnd && j + 2 < bytes.count {
+                                    let remaining = Data(bytes[(j+2)..<bytes.count])
+                                    let decompressed = decompressData(remaining)
+                                    filteredData.append(decompressed)
+                                    return filteredData
+                                }
+                            }
+                            // Skip past IAC SB ... IAC SE
+                            i = foundEnd ? (j + 2) : (bytes.count)
+                            continue
+                        }
+                    } else {
+                        // DO/WILL/DONT/WONT negotiations
+                        if i + 2 < bytes.count {
+                            let opt = bytes[i+2]
+                            if verb == DO {
+                                if opt == TTYPE {
+                                    // Server requests TTYPE; acknowledge
+                                    send(Data([IAC, WILL, TTYPE]))
+                                    print("[TTYPE] DO received → WILL sent")
+                                } else if opt == GMCP {
+                                    gmcpEnabled = true
+                                    send(Data([IAC, WILL, GMCP]))
+                                    print("[GMCP] DO received → WILL sent")
+                                    // Optionally send hello immediately
+                                    sendGMCPHello()
+                                } else if opt == MSDP {
+                                    msdpEnabled = true
+                                    send(Data([IAC, WILL, MSDP]))
+                                    print("[MSDP] DO received → WILL sent")
+                                } else if opt == COMPRESS2 || opt == COMPRESS {
+                                    // Server requests we compress upstream (not supported) → WONT
+                                    send(Data([IAC, WONT, opt]))
+                                    print("[MCCP] DO received for \(opt) → WONT sent (client won't compress)")
+                                } else {
+                                    // Politely decline unknown DO
+                                    send(Data([IAC, WONT, opt]))
+                                }
+                                i += 3
+                                continue
+                            } else if verb == WILL {
+                                if opt == GMCP {
+                                    // Server supports GMCP; ask it to use it
+                                    send(Data([IAC, DO, GMCP]))
+                                    gmcpEnabled = true
+                                    print("[GMCP] WILL received → DO sent")
+                                } else if opt == MSDP {
+                                    send(Data([IAC, DO, MSDP]))
+                                    msdpEnabled = true
+                                    print("[MSDP] WILL received → DO sent")
+                                } else if opt == COMPRESS2 || opt == COMPRESS {
+                                    // Server will compress; agree
+                                    send(Data([IAC, DO, opt]))
+                                    print("[MCCP] WILL received for \(opt) → DO sent (awaiting SB to start)")
+                                } else if opt == TTYPE {
+                                    // We don't need server WILL TTYPE (server shouldn't WILL TTYPE), ignore
+                                } else {
+                                    // Decline unknown
+                                    send(Data([IAC, DONT, opt]))
+                                }
+                                i += 3
+                                continue
+                            } else if verb == DONT || verb == WONT {
+                                // Acknowledge with symmetric disable
+                                send(Data([IAC, verb == DONT ? WONT : DONT, opt]))
+                                i += 3
+                                continue
+                            }
+                        }
+                    }
                 }
+                // If malformed IAC, drop the byte
+                i += 1
+                continue
             }
-            filteredData.append(bytes[i])
+            // Regular data byte (uncompressed)
+            filteredData.append(byte)
             i += 1
         }
         return filteredData
+    }
+
+    private func proactivelyNegotiateTelnetOptions() {
+        // Advertise support proactively
+        send(Data([IAC, WILL, GMCP]))
+        send(Data([IAC, WILL, MSDP]))
+        // Request server-side compression (MCCP v2 preferred)
+        send(Data([IAC, DO, COMPRESS2]))
+    }
+
+    private func sendGMCP(_ payload: String) {
+        var bytes: [UInt8] = [IAC, SB, GMCP]
+        bytes.append(contentsOf: payload.utf8)
+        bytes.append(contentsOf: [IAC, SE])
+        send(Data(bytes))
+        print("[GMCP] -> \(payload)")
+    }
+
+    private func sendGMCPHello() {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+        let hello = "Core.Hello {\"client\":\"MUDTapper\",\"version\":\"\(version)\"}"
+        sendGMCP(hello)
+    }
+
+    // MARK: - MCCP Decompression
+    private func startDecompression() {
+        guard decompressionStreamInitialized == false else { return }
+        var stream = compression_stream()
+        let status = compression_stream_init(&stream, COMPRESSION_STREAM_DECODE, COMPRESSION_ZLIB)
+        if status == COMPRESSION_STATUS_OK {
+            decompressionStream = stream
+            decompressionStreamInitialized = true
+        } else {
+            print("[MCCP] Failed to initialize decompression stream")
+        }
+    }
+
+    private func endDecompression() {
+        if decompressionStreamInitialized, var stream = decompressionStream {
+            compression_stream_destroy(&stream)
+        }
+        decompressionStream = nil
+        decompressionStreamInitialized = false
+        mccpActive = false
+    }
+
+    private func decompressData(_ data: Data) -> Data {
+        guard decompressionStreamInitialized, var stream = decompressionStream else { return Data() }
+        var output = Data()
+        data.withUnsafeBytes { (rawBuffer: UnsafeRawBufferPointer) in
+            guard let srcPtr = rawBuffer.bindMemory(to: UInt8.self).baseAddress else { return }
+            stream.src_ptr = srcPtr
+            stream.src_size = data.count
+            let dstBufferSize = 64 * 1024
+            let dstBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: dstBufferSize)
+            defer { dstBuffer.deallocate() }
+            while stream.src_size > 0 {
+                stream.dst_ptr = dstBuffer
+                stream.dst_size = dstBufferSize
+                let status = compression_stream_process(&stream, 0)
+                if status == COMPRESSION_STATUS_OK || status == COMPRESSION_STATUS_END {
+                    let produced = dstBufferSize - stream.dst_size
+                    if produced > 0 {
+                        output.append(dstBuffer, count: produced)
+                    }
+                    if status == COMPRESSION_STATUS_END { break }
+                } else {
+                    print("[MCCP] Decompression error: \(status)")
+                    break
+                }
+            }
+        }
+        // Save back the stream for continued use
+        decompressionStream = stream
+        return output
     }
 }
 
