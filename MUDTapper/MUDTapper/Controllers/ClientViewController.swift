@@ -91,6 +91,7 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
     
     // Keyboard handling constraints
     private var inputToolbarBottomConstraint: NSLayoutConstraint!
+    private var keyboardManager: KeyboardManager?
     
 
     
@@ -430,74 +431,51 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
     }
     
     private func setupKeyboardHandling() {
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(keyboardWillShow),
-            name: UIResponder.keyboardWillShowNotification,
-            object: nil
+        keyboardManager = KeyboardManager(
+            willShow: { [weak self] keyboardFrame, duration, curve in
+                guard let self = self else { return }
+                // Calculate the keyboard position in the view's coordinate system
+                let keyboardTop = self.view.convert(keyboardFrame, from: nil).minY
+                let tabBarHeight: CGFloat = 36
+                
+                // Deactivate the current bottom constraint
+                self.inputToolbarBottomConstraint.isActive = false
+                
+                // Create and activate new constraint positioning the input toolbar above the tab bar
+                self.inputToolbarBottomConstraint = self.inputToolbar.bottomAnchor.constraint(equalTo: self.view.topAnchor, constant: keyboardTop - tabBarHeight)
+                self.inputToolbarBottomConstraint.isActive = true
+                
+                UIView.animate(withDuration: min(duration, 0.15), delay: 0, options: [UIView.AnimationOptions(rawValue: curve), .allowUserInteraction]) {
+                    self.view.layoutIfNeeded()
+                }
+                
+                // Show the number/punctuation bar
+                self.inputToolbar.showNumberBar()
+                
+                // Scroll to the bottom of the MUD view
+                self.mudView.scrollToBottom()
+            },
+            willHide: { [weak self] duration, curve in
+                guard let self = self else { return }
+                
+                // Deactivate the current bottom constraint
+                self.inputToolbarBottomConstraint.isActive = false
+                
+                // Create and activate a new constraint that positions the input toolbar at the bottom of the view
+                self.inputToolbarBottomConstraint = self.inputToolbar.bottomAnchor.constraint(equalTo: self.view.bottomAnchor)
+                self.inputToolbarBottomConstraint.isActive = true
+                
+                UIView.animate(withDuration: min(duration, 0.15), delay: 0, options: [UIView.AnimationOptions(rawValue: curve), .allowUserInteraction]) {
+                    self.view.layoutIfNeeded()
+                }
+                
+                // Hide the number/punctuation bar
+                self.inputToolbar.hideNumberBar()
+            }
         )
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(keyboardWillHide),
-            name: UIResponder.keyboardWillHideNotification,
-            object: nil
-        )
-        
-
     }
     
-    @objc private func keyboardWillShow(_ notification: Notification) {
-        guard let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else {
-            return
-        }
-        
-        // Use faster animation duration for more responsive feel
-        let duration = min(notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25, 0.1)
-        let curve = notification.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt ?? 0
-        
-        // Calculate the keyboard position in the view's coordinate system
-        let keyboardTop = view.convert(keyboardFrame, from: nil).minY
-        let tabBarHeight: CGFloat = 36
-        
-        // Deactivate the current bottom constraint
-        inputToolbarBottomConstraint.isActive = false
-        
-        // Create and activate new constraint positioning the input toolbar above the tab bar
-        inputToolbarBottomConstraint = inputToolbar.bottomAnchor.constraint(equalTo: view.topAnchor, constant: keyboardTop - tabBarHeight)
-        inputToolbarBottomConstraint.isActive = true
-        
-        // Animate the changes with faster timing
-        UIView.animate(withDuration: duration, delay: 0, options: [UIView.AnimationOptions(rawValue: curve), .allowUserInteraction]) {
-            self.view.layoutIfNeeded()
-        }
-        
-        // Show the number/punctuation bar
-        inputToolbar.showNumberBar()
-        
-        // Scroll to the bottom of the MUD view
-        mudView.scrollToBottom()
-    }
-    
-    @objc private func keyboardWillHide(_ notification: Notification) {
-        // Use faster animation duration for more responsive feel
-        let duration = min(notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25, 0.15)
-        let curve = notification.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt ?? 0
-        
-        // Deactivate the current bottom constraint
-        inputToolbarBottomConstraint.isActive = false
-        
-        // Create and activate a new constraint that positions the input toolbar at the bottom of the view
-        inputToolbarBottomConstraint = inputToolbar.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-        inputToolbarBottomConstraint.isActive = true
-        
-        // Animate the changes with faster timing
-        UIView.animate(withDuration: duration, delay: 0, options: [UIView.AnimationOptions(rawValue: curve), .allowUserInteraction]) {
-            self.view.layoutIfNeeded()
-        }
-        
-        // Hide the number/punctuation bar
-        inputToolbar.hideNumberBar()
-    }
+    // keyboardWillShow/Hide handled by KeyboardManager
     
     // MARK: - Number/Punctuation Bar
     
