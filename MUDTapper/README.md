@@ -33,21 +33,37 @@ MUDTapper is a modern MUD client built for current iOS versions, providing power
 - **Local Echo**: Optional command echoing
 - **Manual World Selection**: Choose your world before connecting
 
+## Networking features (what you get out of the box)
+
+- Auto‑reconnect: If a connection drops, the client will attempt to reconnect with exponential backoff. When the app comes back from background, the client validates the socket and reconnects if needed.
+- Keepalive and latency: Periodic keepalives prevent idle timeouts. In the foreground, keepalives double as latency probes; the client measures round‑trip and tracks the latest latency internally.
+- MCCP (compression): If the server negotiates MCCP v2 (COMPRESS2), the client automatically enables zlib decompression for the incoming stream. No user action required.
+- GMCP and MSDP: The client proactively advertises support for GMCP and MSDP, responds to DO/WILL, and sends a GMCP Core.Hello with client/version. MSDP helper can send XTERM_256_COLORS=1.
+
+How to use it
+- Nothing to enable: All of the above are automatic when a server supports them. Just connect as usual.
+- Verify GMCP/MSDP: In Xcode console logs you’ll see lines like `[GMCP] -> Core.Hello ...` and `[GMCP] <- ...` or `[MSDP] Subnegotiation received` when servers use these.
+- Verify MCCP: If the server starts MCCP, you’ll see `[MCCP]` messages in logs and the client will transparently decompress.
+- Latency display: Latency is measured internally and exposed to the UI layer. If you want it visible, we can surface it in the status HUD or title bar on request.
+
+Troubleshooting
+- If a server misbehaves with GMCP/MSDP: Support is opportunistic and non‑blocking. The client declines unknown telnet options and continues normally.
+- If reconnect loops: The client uses exponential backoff and path monitoring; switching networks (Wi‑Fi ↔︎ Cellular) triggers a clean reconnect.
+
+Security/compatibility
+- Telnet streams are sanitized and option handling is conservative (unknown options declined). TLS can be added in a future update if your world supports it.
+
 ## Technical Details
 
 ### Architecture
 - **Swift 5.9**: Modern Swift with latest language features
 - **iOS 15.0+**: Minimum deployment target
 - **Core Data**: Data persistence with automatic migration
-- **CocoaAsyncSocket**: Reliable networking for telnet connections
+- **Networking**: Apple Network framework (NWConnection) with telnet option negotiation (TTYPE/GMCP/MSDP/MCCP)
 - **ANSI Processing**: Custom engine for terminal escape sequences
 
 ### Dependencies
-- CocoaAsyncSocket (7.6.5+): Networking
-- Masonry (1.1.0+): Auto Layout
-- TTTAttributedLabel (2.0.0+): Rich text display
-- JSQSystemSoundPlayer (2.0.1+): Sound effects
-- VTAcknowledgementsViewController (1.5.5+): Open source acknowledgments
+- No third‑party runtime dependencies. Uses Apple frameworks (UIKit, Network, CoreData, AVFoundation).
 
 ### Project Structure
 ```
