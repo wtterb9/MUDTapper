@@ -1,6 +1,12 @@
 import UIKit
 import CoreData
 
+// MARK: - Layout Constants
+
+enum LayoutConstants {
+    static let tabBarHeight: CGFloat = 36
+}
+
 // MARK: - Protocols
 
 protocol WorldDisplayControllerDelegate: AnyObject {
@@ -127,7 +133,7 @@ class ClientContainer: UIViewController {
             tabBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tabBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tabBarBottomConstraint,
-            tabBar.heightAnchor.constraint(equalToConstant: 36) // Explicit height
+            tabBar.heightAnchor.constraint(equalToConstant: LayoutConstants.tabBarHeight)
         ])
         
         // Add "+" button for new connections
@@ -1183,7 +1189,7 @@ class DraggableTabBar: UITabBar {
     
     override func sizeThatFits(_ size: CGSize) -> CGSize {
         var sizeThatFits = super.sizeThatFits(size)
-        sizeThatFits.height = 36 // Reduced from default 49
+        sizeThatFits.height = LayoutConstants.tabBarHeight
         return sizeThatFits
     }
     
