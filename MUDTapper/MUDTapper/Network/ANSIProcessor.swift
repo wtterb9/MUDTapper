@@ -102,24 +102,17 @@ class ANSIProcessor {
     // MARK: - Processing
     
     func processText(_ text: String, font: UIFont? = nil) -> NSAttributedString {
-        // Performance optimization: skip processing if text is empty
-        guard !text.isEmpty else {
-            return NSAttributedString()
-        }
+        // Fast path: empty
+        guard !text.isEmpty else { return NSAttributedString() }
         
-        let mutableString = NSMutableAttributedString()
         let effectiveFont = font ?? themeManager.terminalFont
-        
-        // Reset attributes for each new text processing
         resetAttributes()
         
-        // First, clean the text of any problematic characters
         let cleanedText = cleanTextForProcessing(text)
         
-        // Performance check: if no ANSI codes, return simple attributed string
-        if !cleanedText.contains("\u{1B}[") && !cleanedText.contains("@") {
-            let attributes = currentAttributes.toAttributes(font: effectiveFont)
-            return NSAttributedString(string: cleanedText, attributes: attributes)
+        // Fast path: plain text
+        if cleanedText.range(of: "\u{1B}[") == nil && cleanedText.range(of: "@") == nil {
+            return NSAttributedString(string: cleanedText, attributes: currentAttributes.toAttributes(font: effectiveFont))
         }
         
         // Process tbaMUD @ color codes first, then standard ANSI
@@ -127,9 +120,7 @@ class ANSIProcessor {
         
         // Find all ANSI escape sequences
         guard let regex = ansiRegex else {
-            // No regex, return plain text
-            let attributes = currentAttributes.toAttributes(font: effectiveFont)
-            return NSAttributedString(string: tbaMUDProcessed, attributes: attributes)
+            return NSAttributedString(string: tbaMUDProcessed, attributes: currentAttributes.toAttributes(font: effectiveFont))
         }
         
         // Convert to NSString for regex processing (handles UTF-8 properly)
@@ -146,6 +137,7 @@ class ANSIProcessor {
         let allMatches = (ansiMatches + escapeMatches).sorted { $0.range.location < $1.range.location }
         
         var lastLocation = 0
+        let mutableString = NSMutableAttributedString()
         
         for match in allMatches {
             // Add text before the escape sequence
