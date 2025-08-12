@@ -668,10 +668,60 @@ extension Notification.Name {
 final class LuaScriptRuntime {
     func evaluate(script: String, variables: [String: String]) -> [String] {
         var results: [String] = []
-        let lines = script.split(separator: "\n").map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
-        for line in lines where !line.isEmpty {
-            if let payload = parseSendCall(from: line) {
-                results.append(substitute(payload, with: variables))
+        let rawLines = script.split(separator: "\n").map { String($0) }
+        var env: [String: String] = variables
+        
+        var i = 0
+        var inIf = false
+        var executing = true
+        var branchTaken = false
+        
+        while i < rawLines.count {
+            let line = rawLines[i]
+            i += 1
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.isEmpty else { continue }
+            if trimmed.hasPrefix("--") { continue }
+            
+            if let cond = parseIf(line: trimmed) {
+                inIf = true
+                executing = evaluateCondition(cond, env: env)
+                branchTaken = executing
+                continue
+            }
+            if let cond = parseElseIf(line: trimmed), inIf {
+                if branchTaken {
+                    executing = false
+                } else {
+                    executing = evaluateCondition(cond, env: env)
+                    branchTaken = executing
+                }
+                continue
+            }
+            if isElse(line: trimmed), inIf {
+                executing = !branchTaken
+                continue
+            }
+            if isEnd(line: trimmed), inIf {
+                inIf = false
+                executing = true
+                branchTaken = false
+                continue
+            }
+            
+            if let assign = parseAssignment(line: trimmed) {
+                if executing {
+                    let value = evaluateExpression(assign.value, env: env)
+                    env[assign.name] = value
+                }
+                continue
+            }
+            
+            if let payload = parseSendCall(from: trimmed) {
+                if executing {
+                    results.append(substitute(payload, with: env))
+                }
+                continue
             }
         }
         return results
@@ -690,6 +740,112 @@ final class LuaScriptRuntime {
             }
         }
         return nil
+    }
+    
+    // MARK: - Simple statements and expressions
+    
+    private func parseAssignment(line: String) -> (name: String, value: String)? {
+        let pattern = #"^(?:local\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.+)$"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
+        let range = NSRange(location: 0, length: line.utf16.count)
+        guard let match = regex.firstMatch(in: line, options: [], range: range) else { return nil }
+        let nameRange = match.range(at: 1)
+        let valueRange = match.range(at: 2)
+        if let n = Range(nameRange, in: line), let v = Range(valueRange, in: line) {
+            return (String(line[n]), String(line[v]))
+        }
+        return nil
+    }
+    
+    private func parseIf(line: String) -> String? {
+        captureFirstGroup(line: line, pattern: #"^if\s+(.+?)\s+then$"#)
+    }
+    
+    private func parseElseIf(line: String) -> String? {
+        captureFirstGroup(line: line, pattern: #"^elseif\s+(.+?)\s+then$"#)
+    }
+    
+    private func isElse(line: String) -> Bool { line == "else" }
+    private func isEnd(line: String) -> Bool { line == "end" }
+    
+    private func captureFirstGroup(line: String, pattern: String) -> String? {
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
+        let range = NSRange(location: 0, length: line.utf16.count)
+        guard let match = regex.firstMatch(in: line, options: [], range: range) else { return nil }
+        let r = match.range(at: 1)
+        if r.location != NSNotFound, let swiftRange = Range(r, in: line) {
+            return String(line[swiftRange])
+        }
+        return nil
+    }
+    
+    private func evaluateExpression(_ expr: String, env: [String: String]) -> String {
+        let trimmed = expr.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let s = parseQuotedString(trimmed) { return s }
+        if Double(trimmed) != nil { return trimmed }
+        return resolveIdentifier(trimmed, env: env)
+    }
+    
+    private func parseQuotedString(_ s: String) -> String? {
+        if s.hasPrefix("\"") && s.hasSuffix("\"") && s.count >= 2 {
+            let start = s.index(after: s.startIndex)
+            let end = s.index(before: s.endIndex)
+            return String(s[start..<end])
+        }
+        if s.hasPrefix("'") && s.hasSuffix("'") && s.count >= 2 {
+            let start = s.index(after: s.startIndex)
+            let end = s.index(before: s.endIndex)
+            return String(s[start..<end])
+        }
+        return nil
+    }
+    
+    private func evaluateCondition(_ condition: String, env: [String: String]) -> Bool {
+        let trimmed = condition.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let (lhs, op, rhs) = parseBinary(cond: trimmed, operators: ["==", "~=", "!="]) {
+            let left = resolveIdentifier(lhs, env: env)
+            let right = evaluateExpression(rhs, env: env)
+            switch op { case "==": return left == right; case "!=", "~=": return left != right; default: break }
+        }
+        if let (lhs, rhs) = parseContains(cond: trimmed) {
+            let left = resolveIdentifier(lhs, env: env)
+            let right = evaluateExpression(rhs, env: env)
+            return left.localizedCaseInsensitiveContains(right)
+        }
+        if let (lhs, op, rhs) = parseBinary(cond: trimmed, operators: [">=", "<=", ">", "<"]) {
+            let left = Double(resolveIdentifier(lhs, env: env)) ?? Double.nan
+            let right = Double(evaluateExpression(rhs, env: env)) ?? Double.nan
+            switch op { case ">": return left > right; case "<": return left < right; case ">=": return left >= right; case "<=": return left <= right; default: break }
+        }
+        if trimmed.lowercased() == "true" || trimmed == "1" { return true }
+        if trimmed.lowercased() == "false" || trimmed == "0" { return false }
+        return !resolveIdentifier(trimmed, env: env).isEmpty
+    }
+    
+    private func parseBinary(cond: String, operators: [String]) -> (String, String, String)? {
+        for op in operators {
+            let parts = cond.components(separatedBy: op)
+            if parts.count == 2 {
+                return (parts[0].trimmingCharacters(in: .whitespaces), op, parts[1].trimmingCharacters(in: .whitespaces))
+            }
+        }
+        return nil
+    }
+    
+    private func parseContains(cond: String) -> (String, String)? {
+        let token = " contains "
+        if let range = cond.range(of: token) {
+            let lhs = String(cond[..<range.lowerBound]).trimmingCharacters(in: .whitespaces)
+            let rhs = String(cond[range.upperBound...]).trimmingCharacters(in: .whitespaces)
+            return (lhs, rhs)
+        }
+        return nil
+    }
+    
+    private func resolveIdentifier(_ name: String, env: [String: String]) -> String {
+        if let val = env[name] { return val }
+        if Int(name) != nil, let val = env[name] { return val }
+        return ""
     }
     
     private func substitute(_ text: String, with variables: [String: String]) -> String {
