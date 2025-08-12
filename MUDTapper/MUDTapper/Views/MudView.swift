@@ -133,12 +133,18 @@ class MudView: UIView, UIGestureRecognizerDelegate, UITextViewDelegate {
     private func setupJumpToLatestButton() {
         let button = UIButton(type: .system)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.setTitle("Jump to Latest", for: .normal)
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 13, weight: .semibold)
-        button.backgroundColor = themeManager.linkColor.withAlphaComponent(0.15)
-        button.tintColor = themeManager.linkColor
-        button.layer.cornerRadius = 14
-        button.contentEdgeInsets = UIEdgeInsets(top: 6, left: 10, bottom: 6, right: 10)
+        var config = UIButton.Configuration.filled()
+        config.title = "Jump to Latest"
+        config.baseForegroundColor = themeManager.linkColor
+        config.baseBackgroundColor = themeManager.linkColor.withAlphaComponent(0.15)
+        config.cornerStyle = .capsule
+        config.contentInsets = NSDirectionalEdgeInsets(top: 6, leading: 10, bottom: 6, trailing: 10)
+        config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
+            var attrs = incoming
+            attrs.font = UIFont.systemFont(ofSize: 13, weight: .semibold)
+            return attrs
+        }
+        button.configuration = config
         button.alpha = 0.0
         button.addTarget(self, action: #selector(jumpToLatestTapped), for: .touchUpInside)
         addSubview(button)
