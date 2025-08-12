@@ -958,6 +958,16 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
         _ = inputToolbar?.resignFirstResponder()
     }
     
+    // Returns true if the input toolbar's text field currently has focus (keyboard visible)
+    func isInputFocused() -> Bool {
+        return inputToolbar?.inputTextField?.isFirstResponder ?? false
+    }
+    
+    // Brings focus to the input toolbar's text field (shows keyboard)
+    func focusInput() {
+        _ = inputToolbar?.becomeFirstResponder()
+    }
+    
     func setNavVisible(_ visible: Bool) {
         navigationToolbar.isHidden = !visible
     }

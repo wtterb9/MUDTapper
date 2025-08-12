@@ -311,6 +311,9 @@ class ClientContainer: UIViewController {
     }
     
     private func switchToClient(_ client: ClientViewController, worldID: NSManagedObjectID) {
+        // Capture whether keyboard is currently shown for the active session
+        let shouldKeepKeyboardFocused = currentClientViewController?.isInputFocused() ?? false
+
         // Ensure the previous client's alpha is restored
         currentClientViewController?.view.alpha = 1.0
         
@@ -356,6 +359,14 @@ class ClientContainer: UIViewController {
         }
         
         print("ClientContainer: Switched to client for world: \(worldID)")
+
+        // If the input was focused before switching, restore focus so the keyboard persists
+        if shouldKeepKeyboardFocused {
+            // Delay to ensure view hierarchy/layout is ready before becoming first responder
+            DispatchQueue.main.async { [weak client] in
+                client?.focusInput()
+            }
+        }
     }
     
     private func setupNavigationBarForWorld() {
