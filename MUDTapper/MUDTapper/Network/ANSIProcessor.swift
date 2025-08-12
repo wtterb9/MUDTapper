@@ -83,6 +83,14 @@ class ANSIProcessor {
         currentAttributes.foregroundColor = themeManager.terminalTextColor
         currentAttributes.backgroundColor = themeManager.terminalBackgroundColor
     }
+
+    // Reset current SGR/text attributes back to theme defaults
+    private func resetAttributes() {
+        currentAttributes = TextAttributes(
+            foregroundColor: themeManager.terminalTextColor,
+            backgroundColor: themeManager.terminalBackgroundColor
+        )
+    }
     
     // MARK: - Processing
     
@@ -93,19 +101,17 @@ class ANSIProcessor {
         }
         
         let mutableString = NSMutableAttributedString()
+        let effectiveFont = font ?? themeManager.terminalFont
         
         // Reset attributes for each new text processing
-        currentAttributes = TextAttributes(
-            foregroundColor: themeManager.terminalTextColor,
-            backgroundColor: themeManager.terminalBackgroundColor
-        )
+        resetAttributes()
         
         // First, clean the text of any problematic characters
         let cleanedText = cleanTextForProcessing(text)
         
         // Performance check: if no ANSI codes, return simple attributed string
         if !cleanedText.contains("\u{1B}[") && !cleanedText.contains("@") {
-            let attributes = currentAttributes.toAttributes(font: themeManager.terminalFont)
+            let attributes = currentAttributes.toAttributes(font: effectiveFont)
             return NSAttributedString(string: cleanedText, attributes: attributes)
         }
         
@@ -115,7 +121,7 @@ class ANSIProcessor {
         // Find all ANSI escape sequences
         guard let regex = ansiRegex else {
             // No regex, return plain text
-            let attributes = currentAttributes.toAttributes(font: themeManager.terminalFont)
+            let attributes = currentAttributes.toAttributes(font: effectiveFont)
             return NSAttributedString(string: tbaMUDProcessed, attributes: attributes)
         }
         
@@ -139,7 +145,7 @@ class ANSIProcessor {
             if match.range.location > lastLocation {
                 let textRange = NSRange(location: lastLocation, length: match.range.location - lastLocation)
                 let substring = nsText.substring(with: textRange)
-                let attributes = currentAttributes.toAttributes(font: themeManager.terminalFont)
+                let attributes = currentAttributes.toAttributes(font: effectiveFont)
                 mutableString.append(NSAttributedString(string: substring, attributes: attributes))
             }
             
@@ -158,7 +164,7 @@ class ANSIProcessor {
         if lastLocation < nsText.length {
             let remainingRange = NSRange(location: lastLocation, length: nsText.length - lastLocation)
             let substring = nsText.substring(with: remainingRange)
-            let attributes = currentAttributes.toAttributes(font: themeManager.terminalFont)
+            let attributes = currentAttributes.toAttributes(font: effectiveFont)
             mutableString.append(NSAttributedString(string: substring, attributes: attributes))
         }
         
