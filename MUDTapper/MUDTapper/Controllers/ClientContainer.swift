@@ -39,6 +39,7 @@ class ClientContainer: UIViewController {
     private var tabOrder: [NSManagedObjectID] = []
     private var tabBarBottomConstraint: NSLayoutConstraint!
     private var clientViewBottomConstraint: NSLayoutConstraint?
+    private var keyboardManager: KeyboardManager?
     
     private var isShowingSideMenu = false
     private let sideMenuWidth: CGFloat = 300
@@ -186,21 +187,43 @@ class ClientContainer: UIViewController {
             object: nil
         )
         
-        // Add keyboard notifications
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(keyboardWillShow(_:)),
-            name: UIResponder.keyboardWillShowNotification,
-            object: nil
+        // Centralized keyboard handling
+        keyboardManager = KeyboardManager(
+            willShow: { [weak self] keyboardFrame, duration, curve in
+                guard let self = self else { return }
+                // Calculate the keyboard position in the view's coordinate system
+                let keyboardTop = self.view.convert(keyboardFrame, from: nil).minY
+                
+                // Deactivate the current bottom constraint
+                self.tabBarBottomConstraint.isActive = false
+                
+                // Position the tab bar just above the keyboard
+                self.tabBarBottomConstraint = self.tabBar.bottomAnchor.constraint(equalTo: self.view.topAnchor, constant: keyboardTop)
+                self.tabBarBottomConstraint.isActive = true
+                
+                // Ensure tab bar is visible and on top
+                self.tabBar.isHidden = false
+                self.view.bringSubviewToFront(self.tabBar)
+                
+                UIView.animate(withDuration: min(duration, 0.15), delay: 0, options: [UIView.AnimationOptions(rawValue: curve), .allowUserInteraction]) {
+                    self.view.layoutIfNeeded()
+                }
+            },
+            willHide: { [weak self] duration, curve in
+                guard let self = self else { return }
+                
+                // Deactivate the current bottom constraint
+                self.tabBarBottomConstraint.isActive = false
+                
+                // Create and activate a new constraint that positions the tab bar at the bottom of the safe area
+                self.tabBarBottomConstraint = self.tabBar.bottomAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.bottomAnchor)
+                self.tabBarBottomConstraint.isActive = true
+                
+                UIView.animate(withDuration: min(duration, 0.15), delay: 0, options: [UIView.AnimationOptions(rawValue: curve), .allowUserInteraction]) {
+                    self.view.layoutIfNeeded()
+                }
+            }
         )
-        
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(keyboardWillHide(_:)),
-            name: UIResponder.keyboardWillHideNotification,
-            object: nil
-        )
-        
 
     }
     
@@ -1356,6 +1379,50 @@ extension DraggableTabBar: UIGestureRecognizerDelegate {
 
 protocol DraggableTabBarDelegate: AnyObject {
     func tabBar(_ tabBar: DraggableTabBar, didReorderItems items: [UITabBarItem])
+}
+
+// MARK: - KeyboardManager
+
+/// Centralized keyboard notification helper with simple closure callbacks.
+class KeyboardManager {
+    private let willShowCallback: (CGRect, Double, UInt) -> Void
+    private let willHideCallback: (Double, UInt) -> Void
+
+    init(willShow: @escaping (CGRect, Double, UInt) -> Void,
+         willHide: @escaping (Double, UInt) -> Void) {
+        self.willShowCallback = willShow
+        self.willHideCallback = willHide
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleKeyboardWillShow(_:)),
+            name: UIResponder.keyboardWillShowNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleKeyboardWillHide(_:)),
+            name: UIResponder.keyboardWillHideNotification,
+            object: nil
+        )
+    }
+
+    @objc private func handleKeyboardWillShow(_ notification: Notification) {
+        guard let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+        let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
+        let curve = notification.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt ?? 0
+        willShowCallback(keyboardFrame, duration, curve)
+    }
+
+    @objc private func handleKeyboardWillHide(_ notification: Notification) {
+        let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
+        let curve = notification.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt ?? 0
+        willHideCallback(duration, curve)
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
 }
 
 // MARK: - UIImage Extension
