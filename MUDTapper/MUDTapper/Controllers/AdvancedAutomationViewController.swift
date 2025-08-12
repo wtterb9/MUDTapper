@@ -139,7 +139,13 @@ class AdvancedAutomationViewController: UIViewController {
             action: #selector(organizerButtonTapped)
         )
         
-        navigationItem.rightBarButtonItems = [addButton, testButton, organizerButton]
+        let helpButton = UIBarButtonItem(
+            image: UIImage(systemName: "questionmark.circle"),
+            style: .plain,
+            target: self,
+            action: #selector(helpButtonTapped)
+        )
+        navigationItem.rightBarButtonItems = [addButton, testButton, organizerButton, helpButton]
     }
     
     private func setupSegmentedControl() {
@@ -346,6 +352,13 @@ class AdvancedAutomationViewController: UIViewController {
     
     @objc private func organizerButtonTapped() {
         showAutomationOrganizer()
+    }
+
+    @objc private func helpButtonTapped() {
+        let vc = TriggerScriptingHelpViewController()
+        let nav = UINavigationController(rootViewController: vc)
+        nav.modalPresentationStyle = .pageSheet
+        present(nav, animated: true)
     }
     
     @objc private func segmentChanged(_ sender: UISegmentedControl) {
@@ -939,6 +952,119 @@ class MultilineTextEditorViewController: UIViewController {
     @objc private func saveTapped() {
         onSave(textView.text ?? "")
         navigationController?.popViewController(animated: true)
+    }
+}
+
+// MARK: - TriggerScriptingHelpViewController
+
+class TriggerScriptingHelpViewController: UIViewController {
+    private let scrollView = UIScrollView()
+    private let stack = UIStackView()
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        title = "Trigger Scripting Guide"
+        view.backgroundColor = ThemeManager.shared.terminalBackgroundColor
+        navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .close, target: self, action: #selector(closeTapped))
+        
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        stack.axis = .vertical
+        stack.spacing = 12
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        
+        view.addSubview(scrollView)
+        scrollView.addSubview(stack)
+        
+        NSLayoutConstraint.activate([
+            scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            
+            stack.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor, constant: 16),
+            stack.leadingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.leadingAnchor, constant: 16),
+            stack.trailingAnchor.constraint(equalTo: scrollView.frameLayoutGuide.trailingAnchor, constant: -16),
+            stack.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor, constant: -24),
+            stack.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor, constant: -32)
+        ])
+        
+        buildContent()
+    }
+    
+    @objc private func closeTapped() { dismiss(animated: true) }
+    
+    private func addTitle(_ text: String) {
+        let label = UILabel()
+        label.text = text
+        label.font = UIFont.systemFont(ofSize: 22, weight: .bold)
+        label.textColor = ThemeManager.shared.terminalTextColor
+        label.numberOfLines = 0
+        stack.addArrangedSubview(label)
+    }
+    
+    private func addSubtitle(_ text: String) {
+        let label = UILabel()
+        label.text = text
+        label.font = UIFont.systemFont(ofSize: 17, weight: .semibold)
+        label.textColor = ThemeManager.shared.terminalTextColor.withAlphaComponent(0.9)
+        label.numberOfLines = 0
+        stack.addArrangedSubview(label)
+    }
+    
+    private func addBody(_ text: String) {
+        let label = UILabel()
+        label.text = text
+        label.font = UIFont.systemFont(ofSize: 14)
+        label.textColor = ThemeManager.shared.terminalTextColor.withAlphaComponent(0.85)
+        label.numberOfLines = 0
+        stack.addArrangedSubview(label)
+    }
+    
+    private func addCode(_ text: String) {
+        let label = UILabel()
+        label.text = text
+        label.font = UIFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        label.textColor = ThemeManager.shared.isDarkTheme ? UIColor.white : UIColor.black
+        label.numberOfLines = 0
+        label.backgroundColor = ThemeManager.shared.terminalTextColor.withAlphaComponent(0.08)
+        label.layer.cornerRadius = 8
+        label.layer.masksToBounds = true
+        label.layoutMargins = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
+        // Use a container to simulate padding
+        let container = UIStackView(arrangedSubviews: [label])
+        container.isLayoutMarginsRelativeArrangement = true
+        container.layoutMargins = UIEdgeInsets(top: 8, left: 8, bottom: 8, right: 8)
+        container.layer.cornerRadius = 8
+        container.backgroundColor = ThemeManager.shared.terminalTextColor.withAlphaComponent(0.08)
+        stack.addArrangedSubview(container)
+    }
+    
+    private func buildContent() {
+        addTitle("Trigger Scripting Guide")
+        addBody("Create powerful automations using triggers, commands, and a small Lua-like runtime.")
+        
+        addSubtitle("Trigger Types")
+        addBody("Wildcard (*, ?) — anchored to the full line. Regex — supports named groups (?<name>...). Exact, Substring, Begins With, Ends With. Enable Ignore Case on the trigger for case-insensitive matching.")
+        
+        addSubtitle("Options")
+        addBody("Enabled, One Shot, Keep Evaluating, Omit from Output/Log, Lowercase Wildcard (lowercases wildcard captures).")
+        
+        addSubtitle("Captured Variables")
+        addBody("Numbered: $1, $2 ... and %1, %2 ... Named (regex): $name or %name. Standard: line, trigger, match_count.")
+        
+        addSubtitle("Commands (legacy)")
+        addBody("Commands are semicolon-separated. Supports @if (condition) {then} {else}. Comparisons: ==, !=, contains, >, <, >=, <=.")
+        addCode("@if (%name == \"guard\") {say Hello, %name} {emote ignores %name}")
+        
+        addSubtitle("Mini Scripting Runtime")
+        addBody("Use the Script field for multi-line logic. Supported: send(\"...\"), assignment, if/elseif/else/end (single level), comparisons (==, !=/~=, >, <, >=, <=, contains), and line comments with --.")
+        addCode("-- Example\nif $name == \"guard\" then\n  send(\"say Hello, $name!\")\nelseif $name contains \"lord\" then\n  local msg = \"hail, \" .. $name\n  send(msg)\nelse\n  send(\"whisper $name Psst.\")\nend")
+        
+        addSubtitle("Execution Order")
+        addBody("Triggers evaluate per line by Priority then Sequence. On fire: captures → commands → script. Stop unless Keep Evaluating is enabled. One Shot hides after firing.")
+        
+        addSubtitle("Tips")
+        addBody("Prefer regex named groups for clarity. Keep patterns specific. Use the tester to iterate. Avoid overly broad .* in regex. Regex compilation is cached per trigger.")
     }
 }
 
