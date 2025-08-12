@@ -53,6 +53,87 @@ Troubleshooting
 Security/compatibility
 - Telnet streams are sanitized and option handling is conservative (unknown options declined). TLS can be added in a future update if your world supports it.
 
+## Trigger scripting (guide)
+
+This section explains how to create powerful, predictable triggers and write small scripts to automate actions.
+
+### Where to create and test triggers
+- Open the side menu → Advanced Automation → Triggers.
+- Tap Add to create a trigger; use the Test button in the top bar to try inputs against your rules.
+
+### Trigger types
+- Wildcard: Use `*` for any text and `?` for any single character. Matching is anchored to the full line.
+  - Example pattern: `* says '*'`
+- Regular Expression: Full regex with optional named groups `(?<name>...)`.
+  - Example: `(?<name>\w+) says '(?<msg>.*)'`
+- Exact: Line must match exactly.
+- Substring: Line contains the given text.
+- Begins With / Ends With: Line starts or ends with the given text.
+
+Case-insensitive matching: enable the Ignore Case option on the trigger.
+
+### Options
+- Enabled: Trigger participates in matching.
+- One Shot: Hide after it fires once.
+- Keep Evaluating: Continue matching later triggers after this one fires; otherwise processing stops.
+- Omit from Output / Omit from Log: Hide matching line from screen and/or logs.
+- Lowercase Wildcard: For wildcard triggers, captured groups are lowercased (useful for consistent substitutions).
+
+### Captured variables (available in commands and scripts)
+- Numbered captures (regex and wildcard): `$1`, `$2`, ...; `%1`, `%2`, ... (MUSH-style). `$0` is the full match.
+- Named captures (regex only): if your pattern uses `(?<name>...)`, access with `$name` or `%name`.
+- Standard keys: `line` (full input line), `trigger` (pattern), `match_count` (1-based fire count).
+
+### Commands string (legacy, simple and fast)
+- Commands are split by semicolons (`;`). Each command line gets variable substitution for `%key` and `$key`.
+- Conditional form (single-line):
+  - `@if (condition) {then_commands} {else_commands}`
+  - Supported comparisons: `==`, `!=`, `contains`, numeric `>`, `<`, `>=`, `<=`.
+  - Example:
+    - `@if (%name == "guard") {say Hello, %name} {emote ignores %name}`
+
+### Mini scripting runtime (Lua-like, safe subset)
+Use a trigger's Script field for multi-line logic. Supported constructs:
+- Send command: `send("text with $1 and %name")`
+- Assignment: `local who = $name` or `count = 3`
+- Conditionals (single level):
+  - `if expr then`, `elseif expr then`, `else`, `end`
+- Comparisons: `==`, `!=`/`~=`, `>`, `<`, `>=`, `<=`, and `contains`.
+- Comments: lines starting with `--`.
+
+Example script:
+```lua
+-- Greet players named guard; otherwise whisper
+if $name == "guard" then
+  send("say Hello, $name!")
+elseif $name contains "lord" then
+  local msg = "hail, noble " .. $name  -- concatenation via substitution result
+  send(msg)
+else
+  send("whisper $name Psst.")
+end
+```
+
+Notes and limits:
+- Single-level `if/elseif/else/end` (no nesting yet).
+- No loops or functions; purpose-built for small trigger actions.
+- All `send("...")` lines perform the same variable substitutions as commands.
+
+### Execution order and behavior
+- Triggers are evaluated per line in this order: higher Priority first, then Sequence.
+- When a trigger fires:
+  1) Captures are computed and stored (posted via `triggerVariablesUpdated`).
+  2) Commands string is processed (if present).
+  3) Script is evaluated (if present).
+  4) If Keep Evaluating is off, processing stops; otherwise the next trigger is checked.
+  5) One Shot triggers are hidden after firing.
+
+### Tips and best practices
+- Prefer regex with named groups for clarity; use wildcard for quick matches.
+- Keep patterns specific to avoid accidental matches. Start/End anchors are implicit for wildcard.
+- Use the tester in Advanced Automation to iterate on patterns and scripts.
+- For performance: avoid overly broad `.*` in regex; the engine caches compiled regex per trigger.
+
 ## Technical Details
 
 ### Architecture
