@@ -758,7 +758,6 @@ class ClientContainer: UIViewController {
         
         // Calculate the keyboard height in the view's coordinate system
         let keyboardTop = view.convert(keyboardFrame, from: nil).minY
-        let tabBarHeight: CGFloat = 36
         
         // Deactivate the current bottom constraint
         tabBarBottomConstraint.isActive = false
