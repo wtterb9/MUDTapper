@@ -1544,15 +1544,35 @@ extension AutomationEditorViewController: UITableViewDataSource, UITableViewDele
         sheet.addAction(UIAlertAction(title: "Wildcard: * arrives.", style: .default) { [weak self] _ in
             self?.setPatternExample("* arrives.")
         })
+        sheet.addAction(UIAlertAction(title: "Copy: * arrives.", style: .default) { _ in
+            UIPasteboard.general.string = "* arrives."
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+        })
         sheet.addAction(UIAlertAction(title: "Wildcard: You are *.", style: .default) { [weak self] _ in
             self?.setPatternExample("You are *.")
+        })
+        sheet.addAction(UIAlertAction(title: "Copy: You are *.", style: .default) { _ in
+            UIPasteboard.general.string = "You are *."
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
         })
         // Regex examples
         sheet.addAction(UIAlertAction(title: "Regex: ^(?<name>\\w+) arrives\\.$", style: .default) { [weak self] _ in
             self?.setPatternExample("^(?<name>\\w+) arrives\\.$")
         })
+        sheet.addAction(UIAlertAction(title: "Copy: ^(?<name>\\w+) arrives\\.$", style: .default) { _ in
+            UIPasteboard.general.string = "^(?<name>\\w+) arrives\\.$"
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+        })
         sheet.addAction(UIAlertAction(title: "Regex: HP: (?<hp>\\d+)/(?:\\d+)", style: .default) { [weak self] _ in
             self?.setPatternExample("HP: (?<hp>\\d+)/(?:\\d+)")
+        })
+        sheet.addAction(UIAlertAction(title: "Copy: HP: (?<hp>\\d+)/(?:\\d+)", style: .default) { _ in
+            UIPasteboard.general.string = "HP: (?<hp>\\d+)/(?:\\d+)"
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
         })
         sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         if let pop = sheet.popoverPresentationController {
