@@ -3,13 +3,12 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 54;
 	objects = {
 
 /* Begin PBXBuildFile section */
-        1234567890ALIAS000001 /* AliasEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1234567890ALIAS000000 /* AliasEditorViewController.swift */; };
-        1234567890TRIGR000001 /* TriggerEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1234567890TRIGR000000 /* TriggerEditorViewController.swift */; };
 		0A2E3D1D7817FDFC95550806 /* ThemeSettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF997AA3624C15E5AE4B9AB2 /* ThemeSettingsViewController.swift */; };
+		0B914DBC526C0929883FFAB7 /* ANSIProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 662BE16596DDC3A6772B38ED /* ANSIProcessorTests.swift */; };
 		0E8D95DC952C8A92A3CF4757 /* MUDTapper.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 38E2007CBADA8A0B272E3570 /* MUDTapper.xcdatamodeld */; };
 		183986E0575BA848DD7470B1 /* WorldCardCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6251685F95C9F653B7B79E28 /* WorldCardCell.swift */; };
 		2308EA878FBBDB769DF22E25 /* PersistenceController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B641755D33EC5B6623194F5D /* PersistenceController.swift */; };
@@ -25,6 +24,7 @@
 		6E9C5B6D6A864B1EA1538D59 /* Gag.swift in Sources */ = {isa = PBXBuildFile; fileRef = C72DCB45DCAAEB4BFAFE0ACF /* Gag.swift */; };
 		761201608647B5D61F2DD3FC /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03BFF6C83A25A27685814871 /* AppDelegate.swift */; };
 		77F544E2D30C7DE3B4E27EF6 /* InputSettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04CBFE0E9639B868E0E679DE /* InputSettingsViewController.swift */; };
+		7B401A1DC9B676F1D9FA8850 /* AliasEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8F143A99AD05A61ADF3276B2 /* AliasEditorViewController.swift */; };
 		7B6C02329E1B65AD9571E5B3 /* SilentAudioManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48E7182CE92C217545AE0619 /* SilentAudioManager.swift */; };
 		833CB26113E0CB920DDCE021 /* SessionLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A28B7077722BD5C0C5596E3A /* SessionLogger.swift */; };
 		86771E54FCDC65C4F6BC26BA /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28EC8720F9AD2036DC884AEE /* SceneDelegate.swift */; };
@@ -33,6 +33,7 @@
 		9AC30ABFF7B28764F27A9CB4 /* ANSIProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F31BCF0F9BED62CA01FBD1FE /* ANSIProcessor.swift */; };
 		9B878CB8B7565C640A5C17F7 /* ThemeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B3D1160D5249EE7267D9F6D /* ThemeManager.swift */; };
 		9EC63955B3419DE33449EF49 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 837B41FD87CA90409494345B /* NotificationManager.swift */; };
+		AF7CB08CD25633B67929BC02 /* SettingsHubViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9560D66F4B15AA9B58A2E67 /* SettingsHubViewController.swift */; };
 		C0650255DB35703E5F82A78A /* LogContentViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7243F8B0131359403E9AB8CF /* LogContentViewController.swift */; };
 		CD4A7F79B3782B6810000ED4 /* EnhancedWorldManagementViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04F852AEB2F93EAB7BF3927D /* EnhancedWorldManagementViewController.swift */; };
 		CE39F794FA97AA56B68EC16A /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 551CF042223D549B610EE5CF /* SettingsViewController.swift */; };
@@ -43,15 +44,25 @@
 		EE9EF7F7FE20ECF7A6CA0DE6 /* SessionDashboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = EEB8B398C1527F7B7835E34D /* SessionDashboardViewController.swift */; };
 		F21203635E7C44025B82BF78 /* Trigger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7CCC92BBDB0A6AEDE7690CFC /* Trigger.swift */; };
 		FD3A2E1373DEF0EEF3482076 /* WorldEditController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8CF043AE53F2712FC4463FD /* WorldEditController.swift */; };
+		FE59A92A0B2C756855E078A5 /* TriggerEditorViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85336DFA7EE4B2B21B2CA705 /* TriggerEditorViewController.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		42FD15808D22E97ED1672D66 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3022CA18517CFC4DA9A80635 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A0BCF2FE32CACB9887001B5B;
+			remoteInfo = MUDTapper;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
-        1234567890ALIAS000000 /* AliasEditorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AliasEditorViewController.swift; sourceTree = "<group>"; };
-        1234567890TRIGR000000 /* TriggerEditorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriggerEditorViewController.swift; sourceTree = "<group>"; };
 		03BFF6C83A25A27685814871 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		04CBFE0E9639B868E0E679DE /* InputSettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputSettingsViewController.swift; sourceTree = "<group>"; };
 		04F852AEB2F93EAB7BF3927D /* EnhancedWorldManagementViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnhancedWorldManagementViewController.swift; sourceTree = "<group>"; };
 		0B3D1160D5249EE7267D9F6D /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
+		178628865A9627460CD0FF3E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		179C1F51F3FA7F3183058FA3 /* InputToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputToolbar.swift; sourceTree = "<group>"; };
 		27CE18C04CD78AD3A3A827F5 /* MudView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MudView.swift; sourceTree = "<group>"; };
 		28EC8720F9AD2036DC884AEE /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -63,10 +74,14 @@
 		551CF042223D549B610EE5CF /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
 		56577483B075213297D7B1FB /* ClientContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientContainer.swift; sourceTree = "<group>"; };
 		6251685F95C9F653B7B79E28 /* WorldCardCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorldCardCell.swift; sourceTree = "<group>"; };
+		662BE16596DDC3A6772B38ED /* ANSIProcessorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ANSIProcessorTests.swift; sourceTree = "<group>"; };
 		7243F8B0131359403E9AB8CF /* LogContentViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogContentViewController.swift; sourceTree = "<group>"; };
+		7AC907204591BB92DFB82A38 /* MUDTapperTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MUDTapperTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7CCC92BBDB0A6AEDE7690CFC /* Trigger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Trigger.swift; sourceTree = "<group>"; };
 		7D8B20A56605B46D0D17CB9E /* MUDTapper.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MUDTapper.xcdatamodel; sourceTree = "<group>"; };
 		837B41FD87CA90409494345B /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
+		85336DFA7EE4B2B21B2CA705 /* TriggerEditorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriggerEditorViewController.swift; sourceTree = "<group>"; };
+		8F143A99AD05A61ADF3276B2 /* AliasEditorViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AliasEditorViewController.swift; sourceTree = "<group>"; };
 		9826045CE86A954433BD3637 /* MUDSocket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MUDSocket.swift; sourceTree = "<group>"; };
 		A24CD49C09E5D2BE6F7E8831 /* Ticker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ticker.swift; sourceTree = "<group>"; };
 		A28B7077722BD5C0C5596E3A /* SessionLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionLogger.swift; sourceTree = "<group>"; };
@@ -78,7 +93,8 @@
 		C72DCB45DCAAEB4BFAFE0ACF /* Gag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Gag.swift; sourceTree = "<group>"; };
 		C801CA48367C85889814B880 /* ClientViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientViewController.swift; sourceTree = "<group>"; };
 		D53C2171DCAD9163B513FFB0 /* AutomationItemCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomationItemCell.swift; sourceTree = "<group>"; };
-		D89A48F4045AA5B858F72EDF /* MUDTapper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MUDTapper.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D89A48F4045AA5B858F72EDF /* MUDTapper.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MUDTapper.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D9560D66F4B15AA9B58A2E67 /* SettingsHubViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsHubViewController.swift; sourceTree = "<group>"; };
 		DFAD62E2FEDE014794189C7B /* World.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World.swift; sourceTree = "<group>"; };
 		EEB8B398C1527F7B7835E34D /* SessionDashboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDashboardViewController.swift; sourceTree = "<group>"; };
 		F31BCF0F9BED62CA01FBD1FE /* ANSIProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ANSIProcessor.swift; sourceTree = "<group>"; };
@@ -119,6 +135,15 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
+		928EC20D6D055B42F7E5562C /* MUDTapperTests */ = {
+			isa = PBXGroup;
+			children = (
+				662BE16596DDC3A6772B38ED /* ANSIProcessorTests.swift */,
+				178628865A9627460CD0FF3E /* Info.plist */,
+			);
+			path = MUDTapperTests;
+			sourceTree = "<group>";
+		};
 		9BDC181BECECB6D7902B7037 /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -141,6 +166,7 @@
 			isa = PBXGroup;
 			children = (
 				5A48180E2351429BE141E754 /* MUDTapper */,
+				928EC20D6D055B42F7E5562C /* MUDTapperTests */,
 				BF9BA426EFF7E5DABCEFAA57 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -149,6 +175,7 @@
 			isa = PBXGroup;
 			children = (
 				502948855546CE16D7375DC1 /* AdvancedAutomationViewController.swift */,
+				8F143A99AD05A61ADF3276B2 /* AliasEditorViewController.swift */,
 				56577483B075213297D7B1FB /* ClientContainer.swift */,
 				C801CA48367C85889814B880 /* ClientViewController.swift */,
 				04F852AEB2F93EAB7BF3927D /* EnhancedWorldManagementViewController.swift */,
@@ -156,12 +183,12 @@
 				7243F8B0131359403E9AB8CF /* LogContentViewController.swift */,
 				C3DB563BB91CA00AE95423CD /* LogManagerViewController.swift */,
 				EEB8B398C1527F7B7835E34D /* SessionDashboardViewController.swift */,
+				D9560D66F4B15AA9B58A2E67 /* SettingsHubViewController.swift */,
 				551CF042223D549B610EE5CF /* SettingsViewController.swift */,
 				AF997AA3624C15E5AE4B9AB2 /* ThemeSettingsViewController.swift */,
+				85336DFA7EE4B2B21B2CA705 /* TriggerEditorViewController.swift */,
 				41E3B9EE0373278B7B1D8A0C /* WorldDisplayController.swift */,
 				B8CF043AE53F2712FC4463FD /* WorldEditController.swift */,
-                1234567890ALIAS000000 /* AliasEditorViewController.swift */,
-                1234567890TRIGR000000 /* TriggerEditorViewController.swift */,
 			);
 			path = Controllers;
 			sourceTree = "<group>";
@@ -181,6 +208,7 @@
 			isa = PBXGroup;
 			children = (
 				D89A48F4045AA5B858F72EDF /* MUDTapper.app */,
+				7AC907204591BB92DFB82A38 /* MUDTapperTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -188,6 +216,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		51035B553F8F4D11EB65314F /* MUDTapperTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 226FD524FC22C933EA027F75 /* Build configuration list for PBXNativeTarget "MUDTapperTests" */;
+			buildPhases = (
+				36416D36D5B7D194E7D9F1A5 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				6F8D7E1C1CA07A9F793311C7 /* PBXTargetDependency */,
+			);
+			name = MUDTapperTests;
+			packageProductDependencies = (
+			);
+			productName = MUDTapperTests;
+			productReference = 7AC907204591BB92DFB82A38 /* MUDTapperTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		A0BCF2FE32CACB9887001B5B /* MUDTapper */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = F46C8A5E81C75E14820F50AA /* Build configuration list for PBXNativeTarget "MUDTapper" */;
@@ -216,6 +262,7 @@
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					A0BCF2FE32CACB9887001B5B = {
+						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -230,10 +277,12 @@
 			);
 			mainGroup = A1922AC56E8D3E36E18C786F;
 			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 54;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				A0BCF2FE32CACB9887001B5B /* MUDTapper */,
+				51035B553F8F4D11EB65314F /* MUDTapperTests */,
 			);
 		};
 /* End PBXProject section */
@@ -251,6 +300,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		36416D36D5B7D194E7D9F1A5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0B914DBC526C0929883FFAB7 /* ANSIProcessorTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A0D5A57FC713B2799C3F812C /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -258,7 +315,7 @@
 				9AC30ABFF7B28764F27A9CB4 /* ANSIProcessor.swift in Sources */,
 				9640BA875AD82CAC9CE560DD /* AdvancedAutomationViewController.swift in Sources */,
 				393D16423CC28BA3C11B2BC5 /* Alias.swift in Sources */,
-				1234567890ALIAS000001 /* AliasEditorViewController.swift in Sources */,
+				7B401A1DC9B676F1D9FA8850 /* AliasEditorViewController.swift in Sources */,
 				761201608647B5D61F2DD3FC /* AppDelegate.swift in Sources */,
 				3453EC76B78331BAF1E57252 /* AutomationItemCell.swift in Sources */,
 				4A003A5560EDB30DDDD44FEC /* ClientContainer.swift in Sources */,
@@ -278,13 +335,14 @@
 				86771E54FCDC65C4F6BC26BA /* SceneDelegate.swift in Sources */,
 				EE9EF7F7FE20ECF7A6CA0DE6 /* SessionDashboardViewController.swift in Sources */,
 				833CB26113E0CB920DDCE021 /* SessionLogger.swift in Sources */,
+				AF7CB08CD25633B67929BC02 /* SettingsHubViewController.swift in Sources */,
 				CE39F794FA97AA56B68EC16A /* SettingsViewController.swift in Sources */,
 				7B6C02329E1B65AD9571E5B3 /* SilentAudioManager.swift in Sources */,
 				9B878CB8B7565C640A5C17F7 /* ThemeManager.swift in Sources */,
-				1234567890TRIGR000001 /* TriggerEditorViewController.swift in Sources */,
 				0A2E3D1D7817FDFC95550806 /* ThemeSettingsViewController.swift in Sources */,
 				D9C194D1B4A483F1D1848C45 /* Ticker.swift in Sources */,
 				F21203635E7C44025B82BF78 /* Trigger.swift in Sources */,
+				FE59A92A0B2C756855E078A5 /* TriggerEditorViewController.swift in Sources */,
 				31AA8BDBB801D1D7FAAC2BB0 /* World.swift in Sources */,
 				183986E0575BA848DD7470B1 /* WorldCardCell.swift in Sources */,
 				5448C35BA99CBF61C60856E5 /* WorldDisplayController.swift in Sources */,
@@ -294,7 +352,33 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		6F8D7E1C1CA07A9F793311C7 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A0BCF2FE32CACB9887001B5B /* MUDTapper */;
+			targetProxy = 42FD15808D22E97ED1672D66 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		0EEF58104CD86B02EDC23AD2 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				INFOPLIST_FILE = MUDTapperTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.mudtapper.MUDTapperTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MUDTapper.app/MUDTapper";
+			};
+			name = Debug;
+		};
 		350E4E6D459762AFD4520438 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -302,7 +386,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 59UN3382JY;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = MUDTapper/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -314,6 +398,24 @@
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_VERSION = 5.9;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		59BFA81A09A6A4DFF2D1A2ED /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				INFOPLIST_FILE = MUDTapperTests/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.mudtapper.MUDTapperTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/MUDTapper.app/MUDTapper";
 			};
 			name = Release;
 		};
@@ -382,7 +484,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 59UN3382JY;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = MUDTapper/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -465,6 +567,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		226FD524FC22C933EA027F75 /* Build configuration list for PBXNativeTarget "MUDTapperTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0EEF58104CD86B02EDC23AD2 /* Debug */,
+				59BFA81A09A6A4DFF2D1A2ED /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		D5D04EE1F7F98004B7D34212 /* Build configuration list for PBXProject "MUDTapper" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

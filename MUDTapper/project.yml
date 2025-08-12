@@ -72,3 +72,15 @@ targets:
       IPHONEOS_DEPLOYMENT_TARGET: "15.0"
       TARGETED_DEVICE_FAMILY: "1,2"
       SUPPORTS_MACCATALYST: false 
+
+  MUDTapperTests:
+    type: bundle.unit-test
+    platform: iOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: MUDTapperTests
+    dependencies:
+      - target: MUDTapper
+    settings:
+      TEST_HOST: "$(BUILT_PRODUCTS_DIR)/MUDTapper.app/MUDTapper"
+      BUNDLE_LOADER: "$(TEST_HOST)"
