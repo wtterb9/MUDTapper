@@ -436,7 +436,7 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
                 guard let self = self else { return }
                 // Calculate the keyboard position in the view's coordinate system
                 let keyboardTop = self.view.convert(keyboardFrame, from: nil).minY
-                let tabBarHeight: CGFloat = 36
+                let tabBarHeight: CGFloat = LayoutConstants.tabBarHeight
                 
                 // Deactivate the current bottom constraint
                 self.inputToolbarBottomConstraint.isActive = false
@@ -445,7 +445,7 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
                 self.inputToolbarBottomConstraint = self.inputToolbar.bottomAnchor.constraint(equalTo: self.view.topAnchor, constant: keyboardTop - tabBarHeight)
                 self.inputToolbarBottomConstraint.isActive = true
                 
-                UIView.animate(withDuration: min(duration, 0.15), delay: 0, options: [UIView.AnimationOptions(rawValue: curve), .allowUserInteraction]) {
+                UIView.animate(withDuration: min(duration, AnimationConstants.keyboardMaxDuration), delay: 0, options: [UIView.AnimationOptions(rawValue: curve), .allowUserInteraction]) {
                     self.view.layoutIfNeeded()
                 }
                 
@@ -465,7 +465,7 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
                 self.inputToolbarBottomConstraint = self.inputToolbar.bottomAnchor.constraint(equalTo: self.view.bottomAnchor)
                 self.inputToolbarBottomConstraint.isActive = true
                 
-                UIView.animate(withDuration: min(duration, 0.15), delay: 0, options: [UIView.AnimationOptions(rawValue: curve), .allowUserInteraction]) {
+                UIView.animate(withDuration: min(duration, AnimationConstants.keyboardMaxDuration), delay: 0, options: [UIView.AnimationOptions(rawValue: curve), .allowUserInteraction]) {
                     self.view.layoutIfNeeded()
                 }
                 

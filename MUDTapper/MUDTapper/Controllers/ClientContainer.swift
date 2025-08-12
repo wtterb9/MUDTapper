@@ -5,6 +5,19 @@ import CoreData
 
 enum LayoutConstants {
     static let tabBarHeight: CGFloat = 36
+    static let sideMenuWidth: CGFloat = 300
+    static let sideMenuSwipeActivationEdgeWidth: CGFloat = 20
+    static let sideMenuOpenTranslationThreshold: CGFloat = 150
+    static let sideMenuDimAlpha: CGFloat = 0.7
+}
+
+// MARK: - Animation Constants
+
+enum AnimationConstants {
+    static let keyboardMaxDuration: Double = 0.15
+    static let sideMenuAnimationDuration: Double = 0.3
+    static let dragEndAnimationDuration: Double = 0.2
+    static let tabBarLongPressDuration: Double = 0.8
 }
 
 // MARK: - Protocols
@@ -48,7 +61,7 @@ class ClientContainer: UIViewController {
     private var keyboardManager: KeyboardManager?
     
     private var isShowingSideMenu = false
-    private let sideMenuWidth: CGFloat = 300
+    private let sideMenuWidth: CGFloat = LayoutConstants.sideMenuWidth
     private var sideMenuLeadingConstraint: NSLayoutConstraint!
     
 
@@ -121,7 +134,7 @@ class ClientContainer: UIViewController {
         
         // Add long press gesture for customization mode (as fallback)
         let longPressGesture = UILongPressGestureRecognizer(target: self, action: #selector(handleTabBarLongPress(_:)))
-        longPressGesture.minimumPressDuration = 0.8 // Slightly longer to avoid conflicts with drag
+        longPressGesture.minimumPressDuration = AnimationConstants.tabBarLongPressDuration
         tabBar.addGestureRecognizer(longPressGesture)
         
         view.addSubview(tabBar)
@@ -137,7 +150,7 @@ class ClientContainer: UIViewController {
         ])
         
         // Add "+" button for new connections
-        let addItem = UITabBarItem(tabBarSystemItem: .more, tag: -1)
+        let addItem = UITabBarItem(tabBarSystemItem: .add, tag: -1)
         addItem.title = "Add"
         tabBar.items = [addItem]
     }
@@ -211,7 +224,7 @@ class ClientContainer: UIViewController {
                 self.tabBar.isHidden = false
                 self.view.bringSubviewToFront(self.tabBar)
                 
-                UIView.animate(withDuration: min(duration, 0.15), delay: 0, options: [UIView.AnimationOptions(rawValue: curve), .allowUserInteraction]) {
+                UIView.animate(withDuration: min(duration, AnimationConstants.keyboardMaxDuration), delay: 0, options: [UIView.AnimationOptions(rawValue: curve), .allowUserInteraction]) {
                     self.view.layoutIfNeeded()
                 }
             },
@@ -225,7 +238,7 @@ class ClientContainer: UIViewController {
                 self.tabBarBottomConstraint = self.tabBar.bottomAnchor.constraint(equalTo: self.view.safeAreaLayoutGuide.bottomAnchor)
                 self.tabBarBottomConstraint.isActive = true
                 
-                UIView.animate(withDuration: min(duration, 0.15), delay: 0, options: [UIView.AnimationOptions(rawValue: curve), .allowUserInteraction]) {
+                UIView.animate(withDuration: min(duration, AnimationConstants.keyboardMaxDuration), delay: 0, options: [UIView.AnimationOptions(rawValue: curve), .allowUserInteraction]) {
                     self.view.layoutIfNeeded()
                 }
             }
@@ -316,7 +329,7 @@ class ClientContainer: UIViewController {
         }
         
         // Add the "Add" button at the end
-        let addItem = UITabBarItem(tabBarSystemItem: .more, tag: -1)
+        let addItem = UITabBarItem(tabBarSystemItem: .add, tag: -1)
         addItem.title = "Add"
         items.append(addItem)
         
@@ -519,23 +532,25 @@ class ClientContainer: UIViewController {
         case .began:
             break
         case .changed:
-            if !isShowingSideMenu && translation.x > 0 && translation.x < 300 {
+            if !isShowingSideMenu && translation.x > 0 && translation.x < LayoutConstants.sideMenuWidth {
                 // Opening gesture
-                let progress = min(translation.x / 300, 1.0)
+                let progress = min(translation.x / LayoutConstants.sideMenuWidth, 1.0)
                 sideMenuLeadingConstraint.constant = -sideMenuWidth + (sideMenuWidth * progress)
                 view.layoutIfNeeded()
-                currentClientViewController?.view.alpha = 1.0 - (0.3 * progress)
+                let dimDelta = 1.0 - LayoutConstants.sideMenuDimAlpha
+                currentClientViewController?.view.alpha = 1.0 - (dimDelta * progress)
             } else if isShowingSideMenu && translation.x < 0 {
                 // Closing gesture
-                let progress = min(-translation.x / 300, 1.0)
+                let progress = min(-translation.x / LayoutConstants.sideMenuWidth, 1.0)
                 sideMenuLeadingConstraint.constant = -(sideMenuWidth * progress)
                 view.layoutIfNeeded()
-                currentClientViewController?.view.alpha = 0.7 + (0.3 * progress)
+                let dimDelta = 1.0 - LayoutConstants.sideMenuDimAlpha
+                currentClientViewController?.view.alpha = LayoutConstants.sideMenuDimAlpha + (dimDelta * progress)
             }
         case .ended, .cancelled:
-            if velocity.x > 500 || translation.x > 150 {
+            if velocity.x > 500 || translation.x > LayoutConstants.sideMenuOpenTranslationThreshold {
                 openSideMenu()
-            } else if velocity.x < -500 || translation.x < -150 {
+            } else if velocity.x < -500 || translation.x < -LayoutConstants.sideMenuOpenTranslationThreshold {
                 closeSideMenu()
             } else {
                 // Snap back to current state
@@ -733,7 +748,7 @@ class ClientContainer: UIViewController {
         view.bringSubviewToFront(worldDisplayController.view)
         worldDisplayController.view.isUserInteractionEnabled = true
         
-        let duration = animated ? 0.3 : 0.0
+        let duration = animated ? AnimationConstants.sideMenuAnimationDuration : 0.0
         
         UIView.animate(withDuration: duration, delay: 0, options: .curveEaseOut) {
             self.sideMenuLeadingConstraint.constant = 0
@@ -749,7 +764,7 @@ class ClientContainer: UIViewController {
         
         isShowingSideMenu = false
         
-        let duration = animated ? 0.3 : 0.0
+        let duration = animated ? AnimationConstants.sideMenuAnimationDuration : 0.0
         
         UIView.animate(withDuration: duration, delay: 0, options: .curveEaseOut) {
             self.sideMenuLeadingConstraint.constant = -self.sideMenuWidth
@@ -968,7 +983,7 @@ extension ClientContainer: UIGestureRecognizerDelegate {
             
             // When side menu is closed, only handle pan gestures from the left edge
             if !isShowingSideMenu {
-                return touchPoint.x < 20 // Only respond to touches near the left edge
+                return touchPoint.x < LayoutConstants.sideMenuSwipeActivationEdgeWidth // Only respond to touches near the left edge
             }
         }
         
@@ -1332,50 +1347,6 @@ extension DraggableTabBar: UIGestureRecognizerDelegate {
 
 protocol DraggableTabBarDelegate: AnyObject {
     func tabBar(_ tabBar: DraggableTabBar, didReorderItems items: [UITabBarItem])
-}
-
-// MARK: - KeyboardManager
-
-/// Centralized keyboard notification helper with simple closure callbacks.
-class KeyboardManager {
-    private let willShowCallback: (CGRect, Double, UInt) -> Void
-    private let willHideCallback: (Double, UInt) -> Void
-
-    init(willShow: @escaping (CGRect, Double, UInt) -> Void,
-         willHide: @escaping (Double, UInt) -> Void) {
-        self.willShowCallback = willShow
-        self.willHideCallback = willHide
-
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleKeyboardWillShow(_:)),
-            name: UIResponder.keyboardWillShowNotification,
-            object: nil
-        )
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(handleKeyboardWillHide(_:)),
-            name: UIResponder.keyboardWillHideNotification,
-            object: nil
-        )
-    }
-
-    @objc private func handleKeyboardWillShow(_ notification: Notification) {
-        guard let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
-        let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
-        let curve = notification.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt ?? 0
-        willShowCallback(keyboardFrame, duration, curve)
-    }
-
-    @objc private func handleKeyboardWillHide(_ notification: Notification) {
-        let duration = notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
-        let curve = notification.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt ?? 0
-        willHideCallback(duration, curve)
-    }
-
-    deinit {
-        NotificationCenter.default.removeObserver(self)
-    }
 }
 
 // MARK: - UIImage Extension
