@@ -183,35 +183,32 @@ public class Trigger: NSManagedObject {
     
     // MARK: - MushClient-Style Pattern Matching
     
+    // Cache compiled regex by (pattern|ignoreCase|type) to avoid recompilation per line
+    private var regexCache: NSRegularExpression?
+    private var regexCacheKey: String?
+    
     private var compiledRegex: NSRegularExpression? {
         guard let pattern = trigger else { return nil }
-        
         let options: NSRegularExpression.Options = shouldIgnoreCase ? [.caseInsensitive] : []
+        let cacheKey = "\(pattern)|\(shouldIgnoreCase ? 1 : 0)|\(triggerTypeEnum.rawValue)"
+        if cacheKey == regexCacheKey, let cached = regexCache { return cached }
         
+        let compiled: NSRegularExpression?
         switch triggerTypeEnum {
         case .regex:
-            do {
-                return try NSRegularExpression(pattern: pattern, options: options)
-            } catch {
-                return nil
-            }
-            
+            compiled = try? NSRegularExpression(pattern: pattern, options: options)
         case .wildcard:
             // Convert MushClient wildcard to regex
-            // First escape the pattern, then replace escaped wildcards with capture groups
             var regexPattern = NSRegularExpression.escapedPattern(for: pattern)
-            regexPattern = regexPattern.replacingOccurrences(of: "\\*", with: "(.*?)")  // * becomes capturing group for any text
-            regexPattern = regexPattern.replacingOccurrences(of: "\\?", with: "(.)")    // ? becomes capturing group for any character
-            
-            do {
-                return try NSRegularExpression(pattern: "^" + regexPattern + "$", options: options)
-            } catch {
-                return nil
-            }
-            
+            regexPattern = regexPattern.replacingOccurrences(of: "\\*", with: "(.*?)")  // * any text
+            regexPattern = regexPattern.replacingOccurrences(of: "\\?", with: "(.)")    // ? any single char
+            compiled = try? NSRegularExpression(pattern: "^" + regexPattern + "$", options: options)
         default:
-            return nil
+            compiled = nil
         }
+        regexCacheKey = compiled == nil ? nil : cacheKey
+        regexCache = compiled
+        return compiled
     }
     
     // MARK: - MushClient-Style Matching Logic
@@ -260,6 +257,20 @@ public class Trigger: NSManagedObject {
             variables = captureWildcardVariables(from: line)
         default:
             break
+        }
+        
+        // Option: for wildcard triggers, lowercase captured groups if requested
+        if triggerTypeEnum == .wildcard && triggerOptions.contains(.lowercaseWildcard) {
+            var lowered: [String: String] = [:]
+            for (key, value) in variables {
+                // Only lowercase numeric and %n captures, not reserved keys like "line"/"trigger"
+                if Int(key) != nil || key.hasPrefix("%") {
+                    lowered[key] = value.lowercased()
+                } else {
+                    lowered[key] = value
+                }
+            }
+            variables = lowered
         }
         
         // Always provide these standard variables
@@ -502,9 +513,10 @@ public class Trigger: NSManagedObject {
         
         // Numeric comparisons: var > 100, var < 50
         if trimmed.range(of: #"\s*([^<>=!]+)\s*([<>=]+)\s*(\d+)"#, options: .regularExpression) != nil {
-            let regex = try! NSRegularExpression(pattern: #"\s*([^<>=!]+)\s*([<>=]+)\s*(\d+)"#)
-            let nsRange = NSRange(trimmed.startIndex..., in: trimmed)
-            if let match = regex.firstMatch(in: trimmed, range: nsRange) {
+            do {
+                let regex = try NSRegularExpression(pattern: #"\s*([^<>=!]+)\s*([<>=]+)\s*(\d+)"#)
+                let nsRange = NSRange(trimmed.startIndex..., in: trimmed)
+                if let match = regex.firstMatch(in: trimmed, range: nsRange) {
                 let leftRange = Range(match.range(at: 1), in: trimmed)!
                 let operatorRange = Range(match.range(at: 2), in: trimmed)!
                 let rightRange = Range(match.range(at: 3), in: trimmed)!
@@ -530,6 +542,9 @@ public class Trigger: NSManagedObject {
                     
                     return result
                 }
+                }
+            } catch {
+                // Invalid pattern; treat as false
             }
         }
         
@@ -558,12 +573,20 @@ public class Trigger: NSManagedObject {
         
         // Increment match count
         matchCount += 1
+        lastModified = Date()
         
         // Capture and store variables
         capturedVariables = captureVariables(from: line)
+        NotificationCenter.default.post(name: .triggerVariablesUpdated, object: self)
         
         // Execute commands
-        let commands = processedCommands(for: line)
+        var commands = processedCommands(for: line)
+        // If a script is present, evaluate it as well (supports minimal Lua send("...") syntax)
+        if let scriptCode = script?.trimmingCharacters(in: .whitespacesAndNewlines), !scriptCode.isEmpty {
+            let lua = LuaScriptRuntime()
+            let scriptCommands = lua.evaluate(script: scriptCode, variables: capturedVariables)
+            if !scriptCommands.isEmpty { commands.append(contentsOf: scriptCommands) }
+        }
         print("    📜 Processed commands: \(commands)")
         
         // Send notification with trigger details
@@ -635,6 +658,49 @@ public class Trigger: NSManagedObject {
 
 extension Notification.Name {
     static let triggerVariablesUpdated = Notification.Name("triggerVariablesUpdated")
+}
+
+// MARK: - Minimal Lua-like Scripting Runtime
+
+/// A tiny interpreter that supports a subset of Lua-like commands for triggers.
+/// Currently recognizes: send("text") and multiple lines; performs variable substitution for %n/$n and named keys.
+/// This is intentionally small and embeddable; replace with a full Lua engine later if needed.
+final class LuaScriptRuntime {
+    func evaluate(script: String, variables: [String: String]) -> [String] {
+        var results: [String] = []
+        let lines = script.split(separator: "\n").map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+        for line in lines where !line.isEmpty {
+            if let payload = parseSendCall(from: line) {
+                results.append(substitute(payload, with: variables))
+            }
+        }
+        return results
+    }
+    
+    private func parseSendCall(from line: String) -> String? {
+        // Matches: send("...") or send('...')
+        let pattern = #"^send\((?:\"([\s\S]*?)\"|'([\s\S]*?)')\)$"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
+        let range = NSRange(location: 0, length: line.utf16.count)
+        guard let match = regex.firstMatch(in: line, options: [], range: range) else { return nil }
+        for groupIndex in 1..<match.numberOfRanges {
+            let r = match.range(at: groupIndex)
+            if r.location != NSNotFound, let swiftRange = Range(r, in: line) {
+                return String(line[swiftRange])
+            }
+        }
+        return nil
+    }
+    
+    private func substitute(_ text: String, with variables: [String: String]) -> String {
+        var output = text
+        // Replace named variables first to avoid clobbering digits
+        for (key, value) in variables.sorted(by: { $0.key.count > $1.key.count }) {
+            output = output.replacingOccurrences(of: "%\(key)", with: value)
+            output = output.replacingOccurrences(of: "$\(key)", with: value)
+        }
+        return output
+    }
 }
 
 // MARK: - Core Data Fetch Request
