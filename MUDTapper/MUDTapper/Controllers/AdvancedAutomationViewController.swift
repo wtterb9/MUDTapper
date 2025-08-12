@@ -897,6 +897,16 @@ class MultilineTextEditorViewController: UIViewController {
     private let hintText: String?
     private let onSave: (String) -> Void
     private let textView = UITextView()
+    
+    func appendText(_ snippet: String) {
+        let existing = textView.text ?? ""
+        if existing.isEmpty {
+            textView.text = snippet
+        } else {
+            let needsNewline = !existing.hasSuffix("\n")
+            textView.text = existing + (needsNewline ? "\n" : "") + snippet
+        }
+    }
 
     init(title: String, initialText: String, hint: String?, onSave: @escaping (String) -> Void) {
         self.hintText = hint
@@ -960,6 +970,7 @@ class MultilineTextEditorViewController: UIViewController {
 class TriggerScriptingHelpViewController: UIViewController {
     private let scrollView = UIScrollView()
     private let stack = UIStackView()
+    private var codeTextByButton: [UIButton: String] = [:]
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -1038,6 +1049,74 @@ class TriggerScriptingHelpViewController: UIViewController {
         container.backgroundColor = ThemeManager.shared.terminalTextColor.withAlphaComponent(0.08)
         stack.addArrangedSubview(container)
     }
+
+    private func addCopyableCode(title: String, text: String) {
+        // Header with title and Copy button
+        let header = UIStackView()
+        header.axis = .horizontal
+        header.alignment = .center
+        header.distribution = .fill
+        header.spacing = 8
+        
+        let titleLabel = UILabel()
+        titleLabel.text = title
+        titleLabel.font = UIFont.systemFont(ofSize: 14, weight: .semibold)
+        titleLabel.textColor = ThemeManager.shared.terminalTextColor.withAlphaComponent(0.9)
+        
+        let spacer = UIView()
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        
+        let copyButton = UIButton(type: .system)
+        copyButton.setTitle("Copy", for: .normal)
+        copyButton.titleLabel?.font = UIFont.systemFont(ofSize: 13, weight: .semibold)
+        copyButton.addTarget(self, action: #selector(copyButtonTapped(_:)), for: .touchUpInside)
+        codeTextByButton[copyButton] = text
+        
+        header.addArrangedSubview(titleLabel)
+        header.addArrangedSubview(spacer)
+        header.addArrangedSubview(copyButton)
+        
+        stack.addArrangedSubview(header)
+        addCode(text)
+    }
+
+    @objc private func copyButtonTapped(_ sender: UIButton) {
+        guard let text = codeTextByButton[sender] else { return }
+        UIPasteboard.general.string = text
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+        showToast("Copied")
+    }
+    
+    private func showToast(_ text: String) {
+        let toast = UILabel()
+        toast.text = text
+        toast.font = UIFont.systemFont(ofSize: 13, weight: .semibold)
+        toast.textColor = .white
+        toast.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+        toast.textAlignment = .center
+        toast.numberOfLines = 1
+        toast.layer.cornerRadius = 12
+        toast.layer.masksToBounds = true
+        toast.alpha = 0.0
+        toast.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(toast)
+        NSLayoutConstraint.activate([
+            toast.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            toast.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -24),
+            toast.widthAnchor.constraint(greaterThanOrEqualToConstant: 80)
+        ])
+        
+        // Add padding via content insets using a container
+        let inset = UIEdgeInsets(top: 8, left: 14, bottom: 8, right: 14)
+        toast.drawText(in: toast.bounds.inset(by: inset))
+        
+        UIView.animate(withDuration: 0.2, animations: { toast.alpha = 1.0 }) { _ in
+            UIView.animate(withDuration: 0.2, delay: 0.9, options: [], animations: { toast.alpha = 0.0 }) { _ in
+                toast.removeFromSuperview()
+            }
+        }
+    }
     
     private func buildContent() {
         addTitle("Trigger Scripting Guide")
@@ -1054,11 +1133,11 @@ class TriggerScriptingHelpViewController: UIViewController {
         
         addSubtitle("Commands (legacy)")
         addBody("Commands are semicolon-separated. Supports @if (condition) {then} {else}. Comparisons: ==, !=, contains, >, <, >=, <=.")
-        addCode("@if (%name == \"guard\") {say Hello, %name} {emote ignores %name}")
+        addCopyableCode(title: "Commands example", text: "@if (%name == \"guard\") {say Hello, %name} {emote ignores %name}")
         
         addSubtitle("Mini Scripting Runtime")
         addBody("Use the Script field for multi-line logic. Supported: send(\"...\"), assignment, if/elseif/else/end (single level), comparisons (==, !=/~=, >, <, >=, <=, contains), and line comments with --.")
-        addCode("-- Example\nif $name == \"guard\" then\n  send(\"say Hello, $name!\")\nelseif $name contains \"lord\" then\n  local msg = \"hail, \" .. $name\n  send(msg)\nelse\n  send(\"whisper $name Psst.\")\nend")
+        addCopyableCode(title: "Script example", text: "-- Example\nif $name == \"guard\" then\n  send(\"say Hello, $name!\")\nelseif $name contains \"lord\" then\n  local msg = \"hail, \" .. $name\n  send(msg)\nelse\n  send(\"whisper $name Psst.\")\nend")
         
         addSubtitle("Execution Order")
         addBody("Triggers evaluate per line by Priority then Sequence. On fire: captures → commands → script. Stop unless Keep Evaluating is enabled. One Shot hides after firing.")
@@ -1425,7 +1504,50 @@ extension AutomationEditorViewController: UITableViewDataSource, UITableViewDele
             self.formData[key] = newText
             self.tableView.reloadData()
         }
+        // Add common examples toolbar for quick insert/copy
+        let examplesButton = UIBarButtonItem(title: "Examples", style: .plain, target: self, action: #selector(showExamplesTapped))
+        examplesButton.accessibilityHint = "Insert example snippets"
+        editor.navigationItem.rightBarButtonItems = [editor.navigationItem.rightBarButtonItem!, examplesButton]
+        editor.navigationItem.leftBarButtonItem?.accessibilityHint = "Cancel editing"
         navigationController?.pushViewController(editor, animated: true)
+    }
+
+    @objc private func showExamplesTapped() {
+        let sheet = UIAlertController(title: "Insert Example", message: nil, preferredStyle: .actionSheet)
+        // Commands example
+        let commands = "@if (%name == \"guard\") {say Hello, %name} {emote ignores %name}"
+        sheet.addAction(UIAlertAction(title: "Commands: @if then/else (Insert)", style: .default) { [weak self] _ in
+            self?.appendToActionField(commands)
+        })
+        sheet.addAction(UIAlertAction(title: "Commands: @if then/else (Copy)", style: .default) { _ in
+            UIPasteboard.general.string = commands
+        })
+        // Script example
+        let script = "-- Example\nif $name == \"guard\" then\n  send(\"say Hello, $name!\")\nelseif $name contains \"lord\" then\n  local msg = \"hail, \" .. $name\n  send(msg)\nelse\n  send(\"whisper $name Psst.\")\nend"
+        sheet.addAction(UIAlertAction(title: "Script: if/elseif/else with send() (Insert)", style: .default) { [weak self] _ in
+            self?.appendToActionField(script)
+        })
+        sheet.addAction(UIAlertAction(title: "Script: if/elseif/else with send() (Copy)", style: .default) { _ in
+            UIPasteboard.general.string = script
+        })
+        sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        if let pop = sheet.popoverPresentationController {
+            pop.sourceView = view
+            pop.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 1, height: 1)
+        }
+        present(sheet, animated: true)
+    }
+    
+    private func appendToActionField(_ text: String) {
+        var current = (formData["action"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if current.isEmpty {
+            current = text
+        } else {
+            // Ensure separation line
+            current += (current.hasSuffix("\n") ? "" : "\n") + text
+        }
+        formData["action"] = current
+        tableView.reloadData()
     }
     
     private func editNumberField(title: String, key: String, placeholder: String) {
