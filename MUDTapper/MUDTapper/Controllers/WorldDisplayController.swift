@@ -13,6 +13,7 @@ class WorldDisplayController: UIViewController {
     private var showDeletedWorlds = false
     private let showDeletedSwitch = UISwitch()
     private let showDeletedLabel = UILabel()
+    private var keyboardManager: KeyboardManager?
     
     // MARK: - Lifecycle
     
@@ -171,19 +172,25 @@ class WorldDisplayController: UIViewController {
             object: nil
         )
         
-        // Add keyboard notifications
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(keyboardWillShow),
-            name: UIResponder.keyboardWillShowNotification,
-            object: nil
-        )
-        
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(keyboardWillHide),
-            name: UIResponder.keyboardWillHideNotification,
-            object: nil
+        // Centralized keyboard handling
+        keyboardManager = KeyboardManager(
+            willShow: { [weak self] keyboardFrame, duration, curve in
+                guard let self = self else { return }
+                let keyboardHeight = keyboardFrame.height
+                self.tableView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: keyboardHeight, right: 0)
+                self.tableView.scrollIndicatorInsets = UIEdgeInsets(top: 0, left: 0, bottom: keyboardHeight, right: 0)
+                UIView.animate(withDuration: min(duration, 0.3), delay: 0, options: [UIView.AnimationOptions(rawValue: curve), .allowUserInteraction]) {
+                    self.view.layoutIfNeeded()
+                }
+            },
+            willHide: { [weak self] duration, curve in
+                guard let self = self else { return }
+                self.tableView.contentInset = .zero
+                self.tableView.scrollIndicatorInsets = .zero
+                UIView.animate(withDuration: min(duration, 0.3), delay: 0, options: [UIView.AnimationOptions(rawValue: curve), .allowUserInteraction]) {
+                    self.view.layoutIfNeeded()
+                }
+            }
         )
     }
     
@@ -355,33 +362,7 @@ class WorldDisplayController: UIViewController {
         }
     }
     
-    // MARK: - Keyboard Handling
-    
-    @objc private func keyboardWillShow(notification: Notification) {
-        guard let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
-        
-        let keyboardHeight = keyboardFrame.height
-        
-        // Adjust table view content inset to account for keyboard
-        tableView.contentInset = UIEdgeInsets(top: 0, left: 0, bottom: keyboardHeight, right: 0)
-        tableView.scrollIndicatorInsets = UIEdgeInsets(top: 0, left: 0, bottom: keyboardHeight, right: 0)
-        
-        // Animate the change
-        UIView.animate(withDuration: 0.3) {
-            self.view.layoutIfNeeded()
-        }
-    }
-    
-    @objc private func keyboardWillHide(notification: Notification) {
-        // Reset table view content inset
-        tableView.contentInset = .zero
-        tableView.scrollIndicatorInsets = .zero
-        
-        // Animate the change
-        UIView.animate(withDuration: 0.3) {
-            self.view.layoutIfNeeded()
-        }
-    }
+    // MARK: - Keyboard Handling moved to KeyboardManager
     
     deinit {
         NotificationCenter.default.removeObserver(self)

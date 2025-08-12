@@ -770,50 +770,6 @@ class ClientContainer: UIViewController {
     
 
     
-    // MARK: - Keyboard Handling
-    
-    @objc private func keyboardWillShow(_ notification: Notification) {
-        guard let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
-        
-        // Use faster animation duration for more responsive feel
-        let duration = min(notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25, 0.15)
-        let curve = notification.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt ?? 0
-        
-        // Calculate the keyboard height in the view's coordinate system
-        let keyboardTop = view.convert(keyboardFrame, from: nil).minY
-        
-        // Deactivate the current bottom constraint
-        tabBarBottomConstraint.isActive = false
-        
-        // Position the tab bar just above the keyboard
-        tabBarBottomConstraint = tabBar.bottomAnchor.constraint(equalTo: view.topAnchor, constant: keyboardTop)
-        tabBarBottomConstraint.isActive = true
-        
-        // Ensure tab bar is visible and on top
-        tabBar.isHidden = false
-        view.bringSubviewToFront(tabBar)
-        
-        UIView.animate(withDuration: duration, delay: 0, options: [UIView.AnimationOptions(rawValue: curve), .allowUserInteraction]) {
-            self.view.layoutIfNeeded()
-        }
-    }
-    
-    @objc private func keyboardWillHide(_ notification: Notification) {
-        // Use faster animation duration for more responsive feel
-        let duration = min(notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25, 0.15)
-        let curve = notification.userInfo?[UIResponder.keyboardAnimationCurveUserInfoKey] as? UInt ?? 0
-        
-        // Deactivate the current bottom constraint
-        tabBarBottomConstraint.isActive = false
-        
-        // Create and activate a new constraint that positions the tab bar at the bottom of the safe area
-        tabBarBottomConstraint = tabBar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
-        tabBarBottomConstraint.isActive = true
-        
-        UIView.animate(withDuration: duration, delay: 0, options: [UIView.AnimationOptions(rawValue: curve), .allowUserInteraction]) {
-            self.view.layoutIfNeeded()
-        }
-    }
     
     // MARK: - App State Handling
     
