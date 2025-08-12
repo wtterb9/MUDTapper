@@ -44,6 +44,15 @@ class AdvancedAutomationViewController: UIViewController {
             }
         }
         
+        var singularTitle: String {
+            switch self {
+            case .triggers: return "Trigger"
+            case .aliases: return "Alias"
+            case .gags: return "Gag"
+            case .tickers: return "Ticker"
+            }
+        }
+        
         var icon: String {
             switch self {
             case .triggers: return "target"
@@ -140,6 +149,26 @@ class AdvancedAutomationViewController: UIViewController {
         segmentedControl.translatesAutoresizingMaskIntoConstraints = false
         segmentedControl.addTarget(self, action: #selector(segmentChanged(_:)), for: .valueChanged)
         
+        // Apply theme-aware styling for visibility on dark backgrounds
+        let theme = ThemeManager.shared
+        segmentedControl.selectedSegmentTintColor = theme.linkColor
+        segmentedControl.backgroundColor = theme.terminalBackgroundColor
+        segmentedControl.layer.cornerRadius = 8
+        segmentedControl.layer.masksToBounds = true
+        segmentedControl.layer.borderWidth = 1
+        segmentedControl.layer.borderColor = theme.terminalTextColor.withAlphaComponent(0.3).cgColor
+        
+        let normalAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: theme.terminalTextColor.withAlphaComponent(0.85),
+            .font: UIFont.systemFont(ofSize: 14, weight: .semibold)
+        ]
+        let selectedAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: UIColor.white,
+            .font: UIFont.systemFont(ofSize: 14, weight: .semibold)
+        ]
+        segmentedControl.setTitleTextAttributes(normalAttrs, for: .normal)
+        segmentedControl.setTitleTextAttributes(selectedAttrs, for: .selected)
+        
         view.addSubview(segmentedControl)
     }
     
@@ -149,6 +178,9 @@ class AdvancedAutomationViewController: UIViewController {
         tableView.delegate = self
         tableView.dataSource = self
         tableView.backgroundColor = ThemeManager.shared.terminalBackgroundColor
+        
+        // Make grouped headers visible against dark backgrounds
+        tableView.sectionHeaderTopPadding = 8
         
         // Register cells
         tableView.register(AutomationItemCell.self, forCellReuseIdentifier: "AutomationItemCell")
@@ -295,7 +327,7 @@ class AdvancedAutomationViewController: UIViewController {
     }
     
     private func updateAddButtonTitle() {
-        addButton.title = "Add \(currentType.title.dropLast())" // Remove 's' from plural
+        addButton.title = "Add \(currentType.singularTitle)"
     }
     
     // MARK: - Actions
@@ -326,8 +358,8 @@ class AdvancedAutomationViewController: UIViewController {
     
     private func showCreationOptions() {
         let alert = UIAlertController(
-            title: "Add \(currentType.title.dropLast())",
-            message: "Choose how to create the \(currentType.title.lowercased().dropLast())",
+            title: "Add \(currentType.singularTitle)",
+            message: "Choose how to create the \(currentType.singularTitle.lowercased())",
             preferredStyle: .actionSheet
         )
         
@@ -411,7 +443,7 @@ class AdvancedAutomationViewController: UIViewController {
         }
         
         let alert = UIAlertController(
-            title: "Duplicate \(currentType.title.dropLast())",
+            title: "Duplicate \(currentType.singularTitle)",
             message: "Choose which item to duplicate",
             preferredStyle: .actionSheet
         )
@@ -535,9 +567,9 @@ class AdvancedAutomationViewController: UIViewController {
         do {
             try context.save()
             refreshAutomationItems()
-            showAlert(title: "Created", message: "\(currentType.title.dropLast()) created successfully.")
+            showAlert(title: "Created", message: "\(currentType.singularTitle) created successfully.")
         } catch {
-            showAlert(title: "Error", message: "Failed to create \(currentType.title.lowercased().dropLast()): \(error.localizedDescription)")
+            showAlert(title: "Error", message: "Failed to create \(currentType.singularTitle.lowercased()): \(error.localizedDescription)")
         }
     }
     
@@ -666,7 +698,7 @@ class AdvancedAutomationViewController: UIViewController {
     
     private func deleteAutomationItem(_ item: AutomationItem) {
         let alert = UIAlertController(
-            title: "Delete \(item.type.title.dropLast())",
+            title: "Delete \(item.type.singularTitle)",
             message: "Are you sure you want to delete '\(item.name)'?",
             preferredStyle: .alert
         )
@@ -774,6 +806,17 @@ extension AdvancedAutomationViewController: UITableViewDelegate {
             return 80 // Summary cell height
         } else {
             return UITableView.automaticDimension
+        }
+    }
+
+    // Ensure section headers are legible on dark backgrounds
+    func tableView(_ tableView: UITableView, willDisplayHeaderView view: UIView, forSection section: Int) {
+        let theme = ThemeManager.shared
+        if let header = view as? UITableViewHeaderFooterView {
+            header.contentView.backgroundColor = theme.terminalBackgroundColor
+            header.backgroundView?.backgroundColor = theme.terminalBackgroundColor
+            header.textLabel?.textColor = theme.terminalTextColor.withAlphaComponent(0.85)
+            header.textLabel?.font = UIFont.systemFont(ofSize: 13, weight: .semibold)
         }
     }
 }
@@ -914,7 +957,7 @@ class AutomationEditorViewController: UIViewController {
         self.world = world
         self.automationItem = automationItem
         super.init(nibName: nil, bundle: nil)
-        title = automationItem == nil ? "New \(type.title.dropLast())" : "Edit \(type.title.dropLast())"
+        title = automationItem == nil ? "New \(type.singularTitle)" : "Edit \(type.singularTitle)"
         loadFormData()
     }
     
