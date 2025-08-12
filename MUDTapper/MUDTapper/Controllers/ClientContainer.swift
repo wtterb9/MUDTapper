@@ -274,22 +274,6 @@ class ClientContainer: UIViewController {
         // Add to active clients
         activeClients[worldID] = clientViewController
         
-        // Add as child view controller
-        addChild(clientViewController)
-        view.addSubview(clientViewController.view)
-        clientViewController.didMove(toParent: self)
-        
-        // Set up constraints
-        clientViewController.view.translatesAutoresizingMaskIntoConstraints = false
-        clientViewBottomConstraint = clientViewController.view.bottomAnchor.constraint(equalTo: tabBar.topAnchor)
-        
-        NSLayoutConstraint.activate([
-            clientViewController.view.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
-            clientViewController.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            clientViewController.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            clientViewBottomConstraint!
-        ])
-        
         // Add tab bar item
         addTabForWorld(world, worldID: worldID)
         
@@ -426,32 +410,39 @@ class ClientContainer: UIViewController {
     private func closeWorld(_ worldID: NSManagedObjectID) {
         // Disconnect and remove the client
         if let client = activeClients[worldID] {
+            let wasCurrent = (currentClientViewController === client)
             client.disconnect()
             client.view.removeFromSuperview()
             client.removeFromParent()
+            
+            // Remove from tracking
+            activeClients.removeValue(forKey: worldID)
+            tabBarItems.removeValue(forKey: worldID)
+            tabOrder.removeAll { $0 == worldID }
+            
+            // Update tab bar
+            updateTabBarItems()
+            
+            // If this was the current client, switch to another or show empty state
+            if wasCurrent {
+                currentClientViewController = nil
+                if let (firstWorldID, firstClient) = activeClients.first {
+                    switchToClient(firstClient, worldID: firstWorldID)
+                } else {
+                    // No more clients, show empty state
+                    showEmptyState()
+                }
+            }
+            
+            print("ClientContainer: Closed world: \(worldID)")
+            return
         }
         
-        // Remove from tracking
+        // If we didn't find the client by ID, just ensure tracking structures are clean
         activeClients.removeValue(forKey: worldID)
         tabBarItems.removeValue(forKey: worldID)
         tabOrder.removeAll { $0 == worldID }
-        
-        // Update tab bar
         updateTabBarItems()
-        
-        // If this was the current client, switch to another or show empty state
-        if currentClientViewController == activeClients[worldID] {
-            currentClientViewController = nil
-            
-            if let (firstWorldID, firstClient) = activeClients.first {
-                switchToClient(firstClient, worldID: firstWorldID)
-            } else {
-                // No more clients, show empty state
-                showEmptyState()
-            }
-        }
-        
-        print("ClientContainer: Closed world: \(worldID)")
     }
     
     private func showEmptyState() {
