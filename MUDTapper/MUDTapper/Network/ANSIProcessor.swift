@@ -24,11 +24,18 @@ class ANSIProcessor {
         var isItalic: Bool = false
         var isUnderlined: Bool = false
         var isStrikethrough: Bool = false
+        var isInverse: Bool = false
+        var isDim: Bool = false
         
         func toAttributes(font: UIFont) -> [NSAttributedString.Key: Any] {
+            // Compute effective colors with inverse and dim handling
+            let baseForeground = isInverse ? backgroundColor : foregroundColor
+            let baseBackground = isInverse ? foregroundColor : backgroundColor
+            let effectiveForeground: UIColor = isDim ? baseForeground.withAlphaComponent(0.75) : baseForeground
+            
             var attributes: [NSAttributedString.Key: Any] = [
-                .foregroundColor: foregroundColor,
-                .backgroundColor: backgroundColor
+                .foregroundColor: effectiveForeground,
+                .backgroundColor: baseBackground
             ]
             
             // Handle font styling
@@ -272,12 +279,11 @@ class ANSIProcessor {
     private func processANSICodeValue(_ code: Int) {
         switch code {
         case 0:
-            currentAttributes = TextAttributes(
-                foregroundColor: themeManager.terminalTextColor,
-                backgroundColor: themeManager.terminalBackgroundColor
-            )
+            resetAttributes()
         case 1:
             currentAttributes.isBold = true
+        case 2:
+            currentAttributes.isDim = true
         case 3:
             currentAttributes.isItalic = true
         case 4:
@@ -286,28 +292,23 @@ class ANSIProcessor {
             currentAttributes.isStrikethrough = true
         case 22:
             currentAttributes.isBold = false
+            currentAttributes.isDim = false
         case 23:
             currentAttributes.isItalic = false
         case 24:
             currentAttributes.isUnderlined = false
         case 29:
             currentAttributes.isStrikethrough = false
+        case 7:
+            currentAttributes.isInverse = true
+        case 27:
+            currentAttributes.isInverse = false
         case 30...37:
             let colorIndex = code - 30
             currentAttributes.foregroundColor = getXterm256Color(index: colorIndex)
-        case 36...43:
-            // Extended bright foreground colors (some MUDs use 36-43 instead of 90-97)
-            // Map 36-43 to bright colors: 36=bright black, 37=bright red, 38=bright green, etc.
-            let brightColorIndex = code - 36 + 8 // Map to bright colors (8-15)
-            currentAttributes.foregroundColor = getXterm256Color(index: brightColorIndex)
         case 40...47:
             let colorIndex = code - 40
             currentAttributes.backgroundColor = getXterm256Color(index: colorIndex)
-        case 46...53:
-            // Extended bright background colors (some MUDs use 46-53 instead of 100-107)
-            // Map 46-53 to bright background colors
-            let brightColorIndex = code - 46 + 8 // Map to bright colors (8-15)
-            currentAttributes.backgroundColor = getXterm256Color(index: brightColorIndex)
         case 90...97:
             currentAttributes.foregroundColor = getXterm256Color(index: code - 90 + 8)
         case 100...107:
