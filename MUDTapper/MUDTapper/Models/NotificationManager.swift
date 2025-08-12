@@ -113,6 +113,34 @@ extension Notification.Name {
     static let notificationTapped = Notification.Name("NotificationTappedNotification")
 } 
 
+// MARK: - Networking Preferences
+
+enum NetworkingPreferences {
+    private static let gmcpKey = "Networking.GMCPEnabled"
+    private static let msdpKey = "Networking.MSDPEnabled"
+    private static let mccpKey = "Networking.MCCPEnabled"
+    private static let autoReconnectKey = "Networking.AutoReconnectEnabled"
+
+    static var gmcpEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: gmcpKey) == nil ? true : UserDefaults.standard.bool(forKey: gmcpKey) }
+        set { UserDefaults.standard.set(newValue, forKey: gmcpKey) }
+    }
+
+    static var msdpEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: msdpKey) == nil ? true : UserDefaults.standard.bool(forKey: msdpKey) }
+        set { UserDefaults.standard.set(newValue, forKey: msdpKey) }
+    }
+
+    static var mccpEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: mccpKey) == nil ? true : UserDefaults.standard.bool(forKey: mccpKey) }
+        set { UserDefaults.standard.set(newValue, forKey: mccpKey) }
+    }
+
+    static var autoReconnectEnabled: Bool {
+        get { UserDefaults.standard.object(forKey: autoReconnectKey) == nil ? true : UserDefaults.standard.bool(forKey: autoReconnectKey) }
+        set { UserDefaults.standard.set(newValue, forKey: autoReconnectKey) }
+    }
+}
 // MARK: - KeyboardManager (shared utility)
 
 /// Centralized keyboard notification helper with simple closure callbacks.

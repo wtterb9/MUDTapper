@@ -80,8 +80,8 @@ class MUDSocket: NSObject {
     var connectedPort: UInt16 = 0
     
     // Telnet feature flags and state
-    private var gmcpEnabled: Bool = false
-    private var msdpEnabled: Bool = false
+    private var gmcpEnabled: Bool = NetworkingPreferences.gmcpEnabled
+    private var msdpEnabled: Bool = NetworkingPreferences.msdpEnabled
     
     // MCCP (compression) state
     private var mccpActive: Bool = false
@@ -215,7 +215,7 @@ class MUDSocket: NSObject {
         
         connectedHost = hostname
         connectedPort = port
-        shouldReconnect = true
+        shouldReconnect = NetworkingPreferences.autoReconnectEnabled
         reconnectAttempts = 0
         
         // Enable VoIP background protection for persistent connection
@@ -1502,14 +1502,22 @@ class MUDSocket: NSObject {
                                     print("[TTYPE] DO received → WILL sent")
                                 } else if opt == GMCP {
                                     gmcpEnabled = true
-                                    send(Data([IAC, WILL, GMCP]))
-                                    print("[GMCP] DO received → WILL sent")
-                                    // Optionally send hello immediately
-                                    sendGMCPHello()
+                                    if NetworkingPreferences.gmcpEnabled {
+                                        send(Data([IAC, WILL, GMCP]))
+                                        print("[GMCP] DO received → WILL sent")
+                                        // Optionally send hello immediately
+                                        sendGMCPHello()
+                                    } else {
+                                        send(Data([IAC, WONT, GMCP]))
+                                    }
                                 } else if opt == MSDP {
                                     msdpEnabled = true
-                                    send(Data([IAC, WILL, MSDP]))
-                                    print("[MSDP] DO received → WILL sent")
+                                    if NetworkingPreferences.msdpEnabled {
+                                        send(Data([IAC, WILL, MSDP]))
+                                        print("[MSDP] DO received → WILL sent")
+                                    } else {
+                                        send(Data([IAC, WONT, MSDP]))
+                                    }
                                 } else if opt == COMPRESS2 || opt == COMPRESS {
                                     // Server requests we compress upstream (not supported) → WONT
                                     send(Data([IAC, WONT, opt]))
@@ -1523,17 +1531,29 @@ class MUDSocket: NSObject {
                             } else if verb == WILL {
                                 if opt == GMCP {
                                     // Server supports GMCP; ask it to use it
-                                    send(Data([IAC, DO, GMCP]))
-                                    gmcpEnabled = true
-                                    print("[GMCP] WILL received → DO sent")
+                                    if NetworkingPreferences.gmcpEnabled {
+                                        send(Data([IAC, DO, GMCP]))
+                                        gmcpEnabled = true
+                                        print("[GMCP] WILL received → DO sent")
+                                    } else {
+                                        send(Data([IAC, DONT, GMCP]))
+                                    }
                                 } else if opt == MSDP {
-                                    send(Data([IAC, DO, MSDP]))
-                                    msdpEnabled = true
-                                    print("[MSDP] WILL received → DO sent")
+                                    if NetworkingPreferences.msdpEnabled {
+                                        send(Data([IAC, DO, MSDP]))
+                                        msdpEnabled = true
+                                        print("[MSDP] WILL received → DO sent")
+                                    } else {
+                                        send(Data([IAC, DONT, MSDP]))
+                                    }
                                 } else if opt == COMPRESS2 || opt == COMPRESS {
                                     // Server will compress; agree
-                                    send(Data([IAC, DO, opt]))
-                                    print("[MCCP] WILL received for \(opt) → DO sent (awaiting SB to start)")
+                                    if NetworkingPreferences.mccpEnabled {
+                                        send(Data([IAC, DO, opt]))
+                                        print("[MCCP] WILL received for \(opt) → DO sent (awaiting SB to start)")
+                                    } else {
+                                        send(Data([IAC, DONT, opt]))
+                                    }
                                 } else if opt == TTYPE {
                                     // We don't need server WILL TTYPE (server shouldn't WILL TTYPE), ignore
                                 } else {
@@ -1563,11 +1583,10 @@ class MUDSocket: NSObject {
     }
 
     private func proactivelyNegotiateTelnetOptions() {
-        // Advertise support proactively
-        send(Data([IAC, WILL, GMCP]))
-        send(Data([IAC, WILL, MSDP]))
-        // Request server-side compression (MCCP v2 preferred)
-        send(Data([IAC, DO, COMPRESS2]))
+        // Advertise support proactively (respect user toggles)
+        if NetworkingPreferences.gmcpEnabled { send(Data([IAC, WILL, GMCP])) }
+        if NetworkingPreferences.msdpEnabled { send(Data([IAC, WILL, MSDP])) }
+        if NetworkingPreferences.mccpEnabled { send(Data([IAC, DO, COMPRESS2])) }
     }
 
     private func sendGMCP(_ payload: String) {
@@ -1587,7 +1606,8 @@ class MUDSocket: NSObject {
     // MARK: - MCCP Decompression
     private func startDecompression() {
         guard decompressionStreamInitialized == false else { return }
-        var stream = compression_stream()
+        // Initialize empty stream struct; fields will be set by compression_stream_init
+        var stream = compression_stream(dst_ptr: UnsafeMutablePointer<UInt8>.allocate(capacity: 0), dst_size: 0, src_ptr: UnsafePointer<UInt8>(bitPattern: 0)!, src_size: 0, state: nil)
         let status = compression_stream_init(&stream, COMPRESSION_STREAM_DECODE, COMPRESSION_ZLIB)
         if status == COMPRESSION_STATUS_OK {
             decompressionStream = stream

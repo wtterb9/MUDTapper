@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -93,7 +93,7 @@
 		C72DCB45DCAAEB4BFAFE0ACF /* Gag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Gag.swift; sourceTree = "<group>"; };
 		C801CA48367C85889814B880 /* ClientViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClientViewController.swift; sourceTree = "<group>"; };
 		D53C2171DCAD9163B513FFB0 /* AutomationItemCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AutomationItemCell.swift; sourceTree = "<group>"; };
-		D89A48F4045AA5B858F72EDF /* MUDTapper.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = MUDTapper.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D89A48F4045AA5B858F72EDF /* MUDTapper.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MUDTapper.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D9560D66F4B15AA9B58A2E67 /* SettingsHubViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsHubViewController.swift; sourceTree = "<group>"; };
 		DFAD62E2FEDE014794189C7B /* World.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = World.swift; sourceTree = "<group>"; };
 		EEB8B398C1527F7B7835E34D /* SessionDashboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDashboardViewController.swift; sourceTree = "<group>"; };
@@ -262,7 +262,6 @@
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					A0BCF2FE32CACB9887001B5B = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -277,7 +276,6 @@
 			);
 			mainGroup = A1922AC56E8D3E36E18C786F;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 54;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -386,7 +384,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 59UN3382JY;
 				INFOPLIST_FILE = MUDTapper/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -484,7 +482,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = 59UN3382JY;
 				INFOPLIST_FILE = MUDTapper/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (

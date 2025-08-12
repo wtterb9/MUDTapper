@@ -26,6 +26,7 @@ class SettingsHubViewController: SettingsViewController {
 
         sections.append(createAppearanceSection())
         sections.append(createInputSection())
+        sections.append(createNetworkingSection())
         sections.append(createLoggingSection())
         sections.append(createAboutSection())
 
@@ -88,6 +89,36 @@ class SettingsHubViewController: SettingsViewController {
             }
         ]
         return SettingsSection(title: "Input", items: items)
+    }
+
+    private func createNetworkingSection() -> SettingsSection {
+        let items: [SettingsItem] = [
+            ToggleSettingsItem(
+                title: "Enable GMCP",
+                accessibilityHint: "Negotiates GMCP and sends Core.Hello",
+                userDefaultsKey: "Networking.GMCPEnabled",
+                defaultValue: true
+            ),
+            ToggleSettingsItem(
+                title: "Enable MSDP",
+                accessibilityHint: "Negotiates MSDP and sends capabilities",
+                userDefaultsKey: "Networking.MSDPEnabled",
+                defaultValue: true
+            ),
+            ToggleSettingsItem(
+                title: "Enable MCCP (Compression)",
+                accessibilityHint: "Accept server compression to save bandwidth",
+                userDefaultsKey: "Networking.MCCPEnabled",
+                defaultValue: true
+            ),
+            ToggleSettingsItem(
+                title: "Auto‑reconnect",
+                accessibilityHint: "Reconnects automatically if disconnected",
+                userDefaultsKey: "Networking.AutoReconnectEnabled",
+                defaultValue: true
+            )
+        ]
+        return SettingsSection(title: "Networking", footer: "These settings apply to all worlds.", items: items)
     }
 
     private func createLoggingSection() -> SettingsSection {

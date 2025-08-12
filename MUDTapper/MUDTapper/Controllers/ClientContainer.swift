@@ -153,9 +153,11 @@ class ClientContainer: UIViewController {
             tabBar.heightAnchor.constraint(equalToConstant: LayoutConstants.tabBarHeight)
         ])
         
-        // Add "+" button for new connections
+        // Add "+" button for new connections (match icon size to session tabs)
         let addIcon = UIImage(systemName: "plus.circle")
-        let addItem = UITabBarItem(title: "Add", image: addIcon, tag: -1)
+        let resizedAddIcon = addIcon?.resized(to: CGSize(width: 22, height: 22))
+        let addItem = UITabBarItem(title: "Add", image: resizedAddIcon, tag: -1)
+        addItem.selectedImage = resizedAddIcon
         tabBar.items = [addItem]
     }
     
@@ -332,9 +334,11 @@ class ClientContainer: UIViewController {
             }
         }
         
-        // Add the "Add" button at the end
+        // Add the "Add" button at the end (match icon size to session tabs)
         let addIcon = UIImage(systemName: "plus.circle")
-        let addItem = UITabBarItem(title: "Add", image: addIcon, tag: -1)
+        let resizedAddIcon = addIcon?.resized(to: CGSize(width: 22, height: 22))
+        let addItem = UITabBarItem(title: "Add", image: resizedAddIcon, tag: -1)
+        addItem.selectedImage = resizedAddIcon
         items.append(addItem)
         
         tabBar.items = items
