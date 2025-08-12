@@ -1357,6 +1357,7 @@ extension AutomationEditorViewController: UITableViewDataSource, UITableViewDele
                     cell.textLabel?.text = "Commands"
                     cell.detailTextLabel?.text = formData["action"] as? String ?? ""
                     cell.accessoryType = .disclosureIndicator
+                    cell.accessoryView = makeHelpAccessory()
                 case 3:
                     cell.textLabel?.text = "Enabled"
                     let enabledSwitch = UISwitch()
@@ -1375,6 +1376,7 @@ extension AutomationEditorViewController: UITableViewDataSource, UITableViewDele
                     cell.textLabel?.text = "Commands"
                     cell.detailTextLabel?.text = formData["action"] as? String ?? ""
                     cell.accessoryType = .disclosureIndicator
+                    cell.accessoryView = makeHelpAccessory()
                 case 2:
                     cell.textLabel?.text = "Enabled"
                     let enabledSwitch = UISwitch()
@@ -1403,6 +1405,7 @@ extension AutomationEditorViewController: UITableViewDataSource, UITableViewDele
                     cell.textLabel?.text = "Commands"
                     cell.detailTextLabel?.text = formData["action"] as? String ?? ""
                     cell.accessoryType = .disclosureIndicator
+                    cell.accessoryView = makeHelpAccessory()
                 case 1:
                     cell.textLabel?.text = "Interval"
                     cell.detailTextLabel?.text = "\(formData["interval"] as? Double ?? 60.0)s"
@@ -1432,6 +1435,29 @@ extension AutomationEditorViewController: UITableViewDataSource, UITableViewDele
         }
         
         return cell
+    }
+
+    private func makeHelpAccessory() -> UIView {
+        let helpButton = UIButton(type: .system)
+        helpButton.setTitle("Help", for: .normal)
+        helpButton.titleLabel?.font = UIFont.systemFont(ofSize: 13, weight: .semibold)
+        helpButton.addTarget(self, action: #selector(helpTapped), for: .touchUpInside)
+        helpButton.setContentHuggingPriority(.required, for: .horizontal)
+        
+        let chevron = UIImageView(image: UIImage(systemName: "chevron.right"))
+        chevron.tintColor = .tertiaryLabel
+        chevron.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+        
+        let stack = UIStackView(arrangedSubviews: [helpButton, chevron])
+        stack.axis = .horizontal
+        stack.spacing = 6
+        return stack
+    }
+    
+    @objc private func helpTapped() {
+        let vc = TriggerScriptingHelpViewController()
+        let nav = UINavigationController(rootViewController: vc)
+        present(nav, animated: true)
     }
     
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
