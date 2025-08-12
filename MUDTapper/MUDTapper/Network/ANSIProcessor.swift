@@ -215,6 +215,8 @@ class ANSIProcessor {
                   cleanCode.hasSuffix("C") || cleanCode.hasSuffix("D") {
             // Handle cursor movement sequences
             return
+        } else if cleanCode.hasSuffix("m") {
+            // SGR sequences already handled below
         } else {
             // Remove any trailing letter for unknown sequences
             cleanCode = cleanCode.replacingOccurrences(of: "[a-zA-Z]$", with: "", options: .regularExpression)
@@ -276,6 +278,8 @@ class ANSIProcessor {
             currentAttributes.isBold = true
         case 2:
             currentAttributes.isDim = true
+        case 5: // blink on - not supported, ignore
+            break
         case 3:
             currentAttributes.isItalic = true
         case 4:
@@ -285,6 +289,8 @@ class ANSIProcessor {
         case 22:
             currentAttributes.isBold = false
             currentAttributes.isDim = false
+        case 25: // blink off - not supported, ignore
+            break
         case 23:
             currentAttributes.isItalic = false
         case 24:

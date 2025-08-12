@@ -89,6 +89,10 @@ class ClientContainer: UIViewController {
         setupNotifications()
         loadInitialWorld()
     }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
@@ -150,8 +154,8 @@ class ClientContainer: UIViewController {
         ])
         
         // Add "+" button for new connections
-        let addItem = UITabBarItem(tabBarSystemItem: .add, tag: -1)
-        addItem.title = "Add"
+        let addIcon = UIImage(systemName: "plus.circle")
+        let addItem = UITabBarItem(title: "Add", image: addIcon, tag: -1)
         tabBar.items = [addItem]
     }
     
@@ -329,8 +333,8 @@ class ClientContainer: UIViewController {
         }
         
         // Add the "Add" button at the end
-        let addItem = UITabBarItem(tabBarSystemItem: .add, tag: -1)
-        addItem.title = "Add"
+        let addIcon = UIImage(systemName: "plus.circle")
+        let addItem = UITabBarItem(title: "Add", image: addIcon, tag: -1)
         items.append(addItem)
         
         tabBar.items = items
