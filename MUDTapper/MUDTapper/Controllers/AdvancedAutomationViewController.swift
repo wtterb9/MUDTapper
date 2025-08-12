@@ -972,6 +972,22 @@ class TriggerScriptingHelpViewController: UIViewController {
     private let stack = UIStackView()
     private var codeTextByButton: [UIButton: String] = [:]
     
+    enum ScrollTarget {
+        case patterns
+        case commands
+        case script
+    }
+    
+    private var initialScrollTarget: ScrollTarget?
+    private weak var patternsAnchor: UIView?
+    private weak var commandsAnchor: UIView?
+    private weak var scriptAnchor: UIView?
+    
+    convenience init(scrollTo target: ScrollTarget) {
+        self.init(nibName: nil, bundle: nil)
+        self.initialScrollTarget = target
+    }
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Trigger Scripting Guide"
@@ -1000,6 +1016,10 @@ class TriggerScriptingHelpViewController: UIViewController {
         ])
         
         buildContent()
+        // Ensure we scroll after layout
+        DispatchQueue.main.async { [weak self] in
+            self?.scrollToInitialTargetIfNeeded()
+        }
     }
     
     @objc private func closeTapped() { dismiss(animated: true) }
@@ -1020,6 +1040,17 @@ class TriggerScriptingHelpViewController: UIViewController {
         label.textColor = ThemeManager.shared.terminalTextColor.withAlphaComponent(0.9)
         label.numberOfLines = 0
         stack.addArrangedSubview(label)
+    }
+    
+    @discardableResult
+    private func addSubtitleWithAnchor(_ text: String) -> UIView {
+        let label = UILabel()
+        label.text = text
+        label.font = UIFont.systemFont(ofSize: 17, weight: .semibold)
+        label.textColor = ThemeManager.shared.terminalTextColor.withAlphaComponent(0.9)
+        label.numberOfLines = 0
+        stack.addArrangedSubview(label)
+        return label
     }
     
     private func addBody(_ text: String) {
@@ -1124,6 +1155,9 @@ class TriggerScriptingHelpViewController: UIViewController {
         
         addSubtitle("Trigger Types")
         addBody("Wildcard (*, ?) — anchored to the full line. Regex — supports named groups (?<name>...). Exact, Substring, Begins With, Ends With. Enable Ignore Case on the trigger for case-insensitive matching.")
+        // Patterns & Regex tips anchor
+        patternsAnchor = addSubtitleWithAnchor("Patterns and Regex Tips")
+        addBody("Wildcard: '*' matches any run of characters, '?' matches a single character. Wildcards match the whole line by default.\nRegex: Prefer specific patterns and named groups (?<name>...). Escape special characters (e.g., '.' as \\.). Avoid heavy patterns like '.*?' at the start. Test using 'Test Pattern' in the editor.")
         
         addSubtitle("Options")
         addBody("Enabled, One Shot, Keep Evaluating, Omit from Output/Log, Lowercase Wildcard (lowercases wildcard captures).")
@@ -1131,11 +1165,11 @@ class TriggerScriptingHelpViewController: UIViewController {
         addSubtitle("Captured Variables")
         addBody("Numbered: $1, $2 ... and %1, %2 ... Named (regex): $name or %name. Standard: line, trigger, match_count.")
         
-        addSubtitle("Commands (legacy)")
+        commandsAnchor = addSubtitleWithAnchor("Commands (legacy)")
         addBody("Commands are semicolon-separated. Supports @if (condition) {then} {else}. Comparisons: ==, !=, contains, >, <, >=, <=.")
         addCopyableCode(title: "Commands example", text: "@if (%name == \"guard\") {say Hello, %name} {emote ignores %name}")
         
-        addSubtitle("Mini Scripting Runtime")
+        scriptAnchor = addSubtitleWithAnchor("Mini Scripting Runtime")
         addBody("Use the Script field for multi-line logic. Supported: send(\"...\"), assignment, if/elseif/else/end (single level), comparisons (==, !=/~=, >, <, >=, <=, contains), and line comments with --.")
         addCopyableCode(title: "Script example", text: "-- Example\nif $name == \"guard\" then\n  send(\"say Hello, $name!\")\nelseif $name contains \"lord\" then\n  local msg = \"hail, \" .. $name\n  send(msg)\nelse\n  send(\"whisper $name Psst.\")\nend")
         
@@ -1144,6 +1178,19 @@ class TriggerScriptingHelpViewController: UIViewController {
         
         addSubtitle("Tips")
         addBody("Prefer regex named groups for clarity. Keep patterns specific. Use the tester to iterate. Avoid overly broad .* in regex. Regex compilation is cached per trigger.")
+    }
+    
+    private func scrollToInitialTargetIfNeeded() {
+        guard let target = initialScrollTarget else { return }
+        let anchor: UIView?
+        switch target {
+        case .patterns: anchor = patternsAnchor
+        case .commands: anchor = commandsAnchor
+        case .script: anchor = scriptAnchor
+        }
+        guard let viewToScroll = anchor else { return }
+        let rect = viewToScroll.convert(viewToScroll.bounds, to: scrollView)
+        scrollView.scrollRectToVisible(rect.insetBy(dx: 0, dy: -16), animated: true)
     }
 }
 
@@ -1353,6 +1400,7 @@ extension AutomationEditorViewController: UITableViewDataSource, UITableViewDele
                     cell.textLabel?.text = "Pattern"
                     cell.detailTextLabel?.text = formData["pattern"] as? String ?? ""
                     cell.accessoryType = .disclosureIndicator
+                    cell.accessoryView = makePatternHelpAccessory()
                 case 2:
                     cell.textLabel?.text = "Commands"
                     cell.detailTextLabel?.text = formData["action"] as? String ?? ""
@@ -1391,6 +1439,7 @@ extension AutomationEditorViewController: UITableViewDataSource, UITableViewDele
                     cell.textLabel?.text = "Pattern"
                     cell.detailTextLabel?.text = formData["pattern"] as? String ?? ""
                     cell.accessoryType = .disclosureIndicator
+                    cell.accessoryView = makePatternHelpAccessory()
                 case 1:
                     cell.textLabel?.text = "Enabled"
                     let enabledSwitch = UISwitch()
@@ -1455,7 +1504,30 @@ extension AutomationEditorViewController: UITableViewDataSource, UITableViewDele
     }
     
     @objc private func helpTapped() {
-        let vc = TriggerScriptingHelpViewController()
+        let vc = TriggerScriptingHelpViewController(scrollTo: .commands)
+        let nav = UINavigationController(rootViewController: vc)
+        present(nav, animated: true)
+    }
+
+    private func makePatternHelpAccessory() -> UIView {
+        let helpButton = UIButton(type: .system)
+        helpButton.setTitle("Help", for: .normal)
+        helpButton.titleLabel?.font = UIFont.systemFont(ofSize: 13, weight: .semibold)
+        helpButton.addTarget(self, action: #selector(patternHelpTapped), for: .touchUpInside)
+        helpButton.setContentHuggingPriority(.required, for: .horizontal)
+        
+        let chevron = UIImageView(image: UIImage(systemName: "chevron.right"))
+        chevron.tintColor = .tertiaryLabel
+        chevron.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+        
+        let stack = UIStackView(arrangedSubviews: [helpButton, chevron])
+        stack.axis = .horizontal
+        stack.spacing = 6
+        return stack
+    }
+    
+    @objc private func patternHelpTapped() {
+        let vc = TriggerScriptingHelpViewController(scrollTo: .patterns)
         let nav = UINavigationController(rootViewController: vc)
         present(nav, animated: true)
     }
