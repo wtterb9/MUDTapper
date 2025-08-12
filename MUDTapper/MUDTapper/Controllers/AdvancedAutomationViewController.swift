@@ -1539,7 +1539,7 @@ extension AutomationEditorViewController: UITableViewDataSource, UITableViewDele
     }
 
     @objc private func patternExamplesTapped() {
-        let sheet = UIAlertController(title: "Insert Pattern Example", message: nil, preferredStyle: .actionSheet)
+        let sheet = UIAlertController(title: "Pattern Examples & Tips", message: nil, preferredStyle: .actionSheet)
         // Wildcard examples
         sheet.addAction(UIAlertAction(title: "Wildcard: * arrives.", style: .default) { [weak self] _ in
             self?.setPatternExample("* arrives.")
@@ -1566,6 +1566,24 @@ extension AutomationEditorViewController: UITableViewDataSource, UITableViewDele
             let generator = UINotificationFeedbackGenerator()
             generator.notificationOccurred(.success)
         })
+        // Regex with multiple named groups
+        sheet.addAction(UIAlertAction(title: "Regex (named groups): ^(?<name>\\w+) says '(?<msg>.*)'$", style: .default) { [weak self] _ in
+            self?.setPatternExample("^(?<name>\\w+) says '(?<msg>.*)'$")
+        })
+        sheet.addAction(UIAlertAction(title: "Copy: ^(?<name>\\w+) says '(?<msg>.*)'$", style: .default) { _ in
+            UIPasteboard.general.string = "^(?<name>\\w+) says '(?<msg>.*)'$"
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+        })
+        // Case-insensitive tip using inline flag
+        sheet.addAction(UIAlertAction(title: "Tip: Prefix current regex with (?i) for Ignore Case", style: .default) { [weak self] _ in
+            self?.prefixPatternWithCaseInsensitiveFlag()
+        })
+        sheet.addAction(UIAlertAction(title: "Copy: (?i)You are hungry.$", style: .default) { _ in
+            UIPasteboard.general.string = "(?i)You are hungry.$"
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+        })
         sheet.addAction(UIAlertAction(title: "Regex: HP: (?<hp>\\d+)/(?:\\d+)", style: .default) { [weak self] _ in
             self?.setPatternExample("HP: (?<hp>\\d+)/(?:\\d+)")
         })
@@ -1584,6 +1602,24 @@ extension AutomationEditorViewController: UITableViewDataSource, UITableViewDele
     
     private func setPatternExample(_ example: String) {
         formData["pattern"] = example
+        tableView.reloadData()
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+    }
+    
+    private func prefixPatternWithCaseInsensitiveFlag() {
+        let current = (formData["pattern"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if current.isEmpty {
+            formData["pattern"] = "(?i)"
+        } else if current.hasPrefix("(?i)") {
+            // already prefixed; no-op with subtle haptic
+            let generator = UIImpactFeedbackGenerator(style: .light)
+            generator.impactOccurred()
+            tableView.reloadData()
+            return
+        } else {
+            formData["pattern"] = "(?i)" + current
+        }
         tableView.reloadData()
         let generator = UINotificationFeedbackGenerator()
         generator.notificationOccurred(.success)
