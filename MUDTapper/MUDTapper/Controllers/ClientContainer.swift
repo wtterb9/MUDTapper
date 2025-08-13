@@ -391,9 +391,14 @@ class ClientContainer: UIViewController {
             let center = CGPoint(x: size.width/2, y: size.height/2)
             let radius = min(size.width, size.height)/2 - 1
 
-            // Mana ring (blue)
+            // Colors
             let trackColor = ThemeManager.shared.linkColor.withAlphaComponent(0.25)
-            let manaColor = UIColor.systemBlue
+            let isStale = Date().timeIntervalSince(vitals.updatedAt) > 10
+            func colorForPercent(_ p: Double) -> UIColor {
+                if p >= 0.6 { return .systemGreen }
+                if p >= 0.3 { return .systemYellow }
+                return .systemRed
+            }
             let lineWidth: CGFloat = 2
             ctx.cgContext.setLineWidth(lineWidth)
             ctx.cgContext.setLineCap(.round)
@@ -404,7 +409,9 @@ class ClientContainer: UIViewController {
             // Progress
             if let p = vitals.manaPercent {
                 let end = (-.pi/2) + (2 * .pi * CGFloat(max(0,min(1,p))))
-                ctx.cgContext.setStrokeColor(manaColor.cgColor)
+                let manaColor = colorForPercent(p)
+                let stroke = isStale ? manaColor.withAlphaComponent(0.4) : manaColor
+                ctx.cgContext.setStrokeColor(stroke.cgColor)
                 ctx.cgContext.addArc(center: center, radius: radius, startAngle: -.pi/2, endAngle: end, clockwise: false)
                 ctx.cgContext.strokePath()
             }
@@ -428,7 +435,9 @@ class ClientContainer: UIViewController {
                 let clamped = CGFloat(max(0, min(1, hpP)))
                 let fillHeight = diskRect.height * clamped
                 let fillRect = CGRect(x: diskRect.minX, y: diskRect.maxY - fillHeight, width: diskRect.width, height: fillHeight)
-                UIColor.systemRed.setFill()
+                let hpColor = colorForPercent(Double(hpP))
+                let fillColor = isStale ? hpColor.withAlphaComponent(0.4) : hpColor
+                fillColor.setFill()
                 ctx.cgContext.fill(fillRect)
                 ctx.cgContext.restoreGState()
             }

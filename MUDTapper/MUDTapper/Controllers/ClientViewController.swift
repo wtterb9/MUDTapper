@@ -310,9 +310,25 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
             if hpPct != nil || manaPct != nil {
                 let label = UILabel()
                 label.font = UIFont.monospacedDigitSystemFont(ofSize: 13, weight: .semibold)
-                label.textColor = stale ? .secondaryLabel : .label
-                let hpText = hpPct.map { Int(round($0 * 100)) }?.description ?? "–"
-                let mnText = manaPct.map { Int(round($0 * 100)) }?.description ?? "–"
+                func colorFor(_ p: Double?) -> UIColor {
+                    guard let p = p else { return .secondaryLabel }
+                    if p >= 0.6 { return .systemGreen }
+                    if p >= 0.3 { return .systemYellow }
+                    return .systemRed
+                }
+                let hpInt = hpPct.map { Int(round($0 * 100)) }
+                let mnInt = manaPct.map { Int(round($0 * 100)) }
+                let hpText = hpInt.map { "\($0)%" } ?? "–%"
+                let mnText = mnInt.map { "\($0)%" } ?? "–%"
+                let baseColorHP = colorFor(hpPct)
+                let baseColorMN = colorFor(manaPct)
+                let hpColor = stale ? baseColorHP.withAlphaComponent(0.4) : baseColorHP
+                let mnColor = stale ? baseColorMN.withAlphaComponent(0.4) : baseColorMN
+                let combined = NSMutableAttributedString(string: "HP ")
+                combined.append(NSAttributedString(string: hpText, attributes: [.foregroundColor: hpColor]))
+                combined.append(NSAttributedString(string: "  MN "))
+                combined.append(NSAttributedString(string: mnText, attributes: [.foregroundColor: mnColor]))
+                label.attributedText = combined
                 label.text = "HP \(hpText)%  MN \(mnText)%"
                 vitalsItem = UIBarButtonItem(customView: label)
             }
