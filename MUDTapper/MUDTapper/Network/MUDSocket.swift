@@ -75,6 +75,8 @@ class MUDSocket: NSObject {
     
     var connectedHost: String?
     var connectedPort: UInt16 = 0
+    // Identify owning world for cross-session vitals updates
+    var currentWorldObjectID: NSManagedObjectID?
     
     // Telnet feature flags and state
     private var gmcpEnabled: Bool = NetworkingPreferences.gmcpEnabled
@@ -1481,8 +1483,17 @@ class MUDSocket: NSObject {
                                     print("[GMCP] <- \(text)")
                                 }
                             } else if opt == MSDP {
-                                // MSDP payload; ignore for now
-                                print("[MSDP] Subnegotiation received (\(payload.count) bytes)")
+                                // MSDP payload; attempt simple parsing of VAR/VAL flat pairs
+                                // Spec-compliant arrays/tables are not fully handled yet
+                                let vars = self?.parseMSDP(payload: payload) ?? [:]
+                                if !vars.isEmpty {
+                                    print("[MSDP] Parsed: \(vars)")
+                                    if let worldID = self?.currentWorldObjectID {
+                                        SessionVitalsStore.shared.update(worldID: worldID, with: vars)
+                                    }
+                                } else {
+                                    print("[MSDP] Subnegotiation received (\(payload.count) bytes)")
+                                }
                             } else if opt == COMPRESS2 || opt == COMPRESS {
                                 // Start MCCP(after IAC SB COMPRESS[2] IAC SE); compressed data may follow in same buffer
                                 print("[MCCP] Compression negotiation complete; enabling decompression")
@@ -1655,6 +1666,38 @@ class MUDSocket: NSObject {
         bytes.append(contentsOf: [IAC, SE])
         send(Data(bytes))
         print("[GMCP] -> \(payload)")
+    }
+
+    // MARK: - MSDP naive parser (VAR/VAL flat pairs)
+    // Many servers send: \x01VARname\x02VALvalue pairs inside SB MSDP ... SE
+    private func parseMSDP(payload: Data) -> [String: String] {
+        // MSDP tokens
+        let MSDP_VAR: UInt8 = 1
+        let MSDP_VAL: UInt8 = 2
+        var result: [String: String] = [:]
+        let bytes = [UInt8](payload)
+        var i = 0
+        var currentKey: String?
+        while i < bytes.count {
+            let b = bytes[i]
+            if b == MSDP_VAR {
+                // Read key until next token or end
+                i += 1
+                var keyBytes: [UInt8] = []
+                while i < bytes.count, bytes[i] != MSDP_VAR, bytes[i] != MSDP_VAL { keyBytes.append(bytes[i]); i += 1 }
+                currentKey = String(bytes: keyBytes, encoding: .utf8)
+            } else if b == MSDP_VAL {
+                // Read value until next token or end
+                i += 1
+                var valBytes: [UInt8] = []
+                while i < bytes.count, bytes[i] != MSDP_VAR, bytes[i] != MSDP_VAL { valBytes.append(bytes[i]); i += 1 }
+                if let key = currentKey, let value = String(bytes: valBytes, encoding: .utf8) { result[key] = value }
+                currentKey = nil
+            } else {
+                i += 1
+            }
+        }
+        return result
     }
 
     private func sendGMCPHello() {

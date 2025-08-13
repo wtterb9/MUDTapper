@@ -55,6 +55,7 @@ class ClientContainer: UIViewController {
     private var worldDisplayController: WorldDisplayController?
     private var tabBar: DraggableTabBar!
     private var tabBarItems: [NSManagedObjectID: UITabBarItem] = [:]
+    private var tabBaseImages: [NSManagedObjectID: UIImage] = [:]
     private var tabOrder: [NSManagedObjectID] = []
     private var tabBarBottomConstraint: NSLayoutConstraint!
     private var clientViewBottomConstraint: NSLayoutConstraint?
@@ -211,6 +212,14 @@ class ClientContainer: UIViewController {
             name: .themeDidChange,
             object: nil
         )
+
+        // Observe vitals updates to refresh tab icons
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(vitalsDidUpdate(_:)),
+            name: .vitalsDidUpdate,
+            object: nil
+        )
         
         // Centralized keyboard handling
         keyboardManager = KeyboardManager(
@@ -250,6 +259,15 @@ class ClientContainer: UIViewController {
             }
         )
 
+    }
+
+    @objc private func vitalsDidUpdate(_ note: Notification) {
+        guard let worldID = note.object as? NSManagedObjectID else { return }
+        guard let tabItem = tabBarItems[worldID], let base = tabBaseImages[worldID] else { return }
+        if worldID != currentClientViewController?.worldID,
+           let vitals = SessionVitalsStore.shared.vitals(for: worldID) {
+            tabItem.image = renderVitalsIcon(base: base, vitals: vitals)
+        }
     }
     
     // MARK: - World Management
@@ -320,6 +338,7 @@ class ClientContainer: UIViewController {
         )
         
         tabBarItems[worldID] = tabItem
+        if let base = resizedImage { tabBaseImages[worldID] = base }
         tabOrder.append(worldID)
         updateTabBarItems()
     }
@@ -342,6 +361,78 @@ class ClientContainer: UIViewController {
         items.append(addItem)
         
         tabBar.items = items
+
+        // Re-apply vitals overlay icons for inactive sessions
+        refreshAllTabIcons()
+    }
+
+    private func refreshAllTabIcons() {
+        for (worldID, tabItem) in tabBarItems {
+            guard let base = tabBaseImages[worldID] else { continue }
+            let isActive = (worldID == currentClientViewController?.worldID)
+            if !isActive {
+                if let vitals = SessionVitalsStore.shared.vitals(for: worldID) {
+                    tabItem.image = renderVitalsIcon(base: base, vitals: vitals)
+                } else {
+                    tabItem.image = base
+                }
+            } else {
+                tabItem.image = base
+            }
+        }
+    }
+
+    private func renderVitalsIcon(base: UIImage, vitals: SessionVitalsStore.Vitals) -> UIImage {
+        let size = base.size
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let img = renderer.image { ctx in
+            base.draw(in: CGRect(origin: .zero, size: size))
+            let center = CGPoint(x: size.width/2, y: size.height/2)
+            let radius = min(size.width, size.height)/2 - 1
+
+            // Mana ring (blue)
+            let trackColor = ThemeManager.shared.linkColor.withAlphaComponent(0.25)
+            let manaColor = UIColor.systemBlue
+            let lineWidth: CGFloat = 2
+            ctx.cgContext.setLineWidth(lineWidth)
+            ctx.cgContext.setLineCap(.round)
+            // Track
+            ctx.cgContext.setStrokeColor(trackColor.cgColor)
+            ctx.cgContext.addArc(center: center, radius: radius, startAngle: -.pi/2, endAngle: 1.5 * .pi, clockwise: false)
+            ctx.cgContext.strokePath()
+            // Progress
+            if let p = vitals.manaPercent {
+                let end = (-.pi/2) + (2 * .pi * CGFloat(max(0,min(1,p))))
+                ctx.cgContext.setStrokeColor(manaColor.cgColor)
+                ctx.cgContext.addArc(center: center, radius: radius, startAngle: -.pi/2, endAngle: end, clockwise: false)
+                ctx.cgContext.strokePath()
+            }
+
+            // HP inner disk with vertical fill
+            let diskInset: CGFloat = 6
+            let diskRect = CGRect(x: diskInset, y: diskInset, width: size.width - 2*diskInset, height: size.height - 2*diskInset)
+            let diskPath = UIBezierPath(ovalIn: diskRect)
+            // Disk border
+            UIColor.black.withAlphaComponent(0.3).setStroke()
+            diskPath.lineWidth = 1
+            diskPath.stroke()
+            // Disk track
+            ThemeManager.shared.terminalTextColor.withAlphaComponent(0.15).setFill()
+            diskPath.fill()
+            if let hpP = vitals.hpPercent {
+                // Clip to disk and draw red fill up to vertical percent
+                ctx.cgContext.saveGState()
+                ctx.cgContext.addEllipse(in: diskRect)
+                ctx.cgContext.clip()
+                let clamped = CGFloat(max(0, min(1, hpP)))
+                let fillHeight = diskRect.height * clamped
+                let fillRect = CGRect(x: diskRect.minX, y: diskRect.maxY - fillHeight, width: diskRect.width, height: fillHeight)
+                UIColor.systemRed.setFill()
+                ctx.cgContext.fill(fillRect)
+                ctx.cgContext.restoreGState()
+            }
+        }
+        return img.withRenderingMode(.alwaysOriginal)
     }
     
     private func switchToClient(_ client: ClientViewController, worldID: NSManagedObjectID) {

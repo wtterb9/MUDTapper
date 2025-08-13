@@ -291,9 +291,14 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
             action: #selector(connectButtonTapped)
         )
         
-        // Latency display (disabled button text)
-        let latencyItem = UIBarButtonItem(title: latencyDisplayText(), style: .plain, target: nil, action: nil)
-        latencyItem.isEnabled = false
+        // Latency display (per-session, colored by threshold)
+        let latencyText = latencyDisplayText()
+        let latencyItem = UIBarButtonItem(title: latencyText, style: .plain, target: nil, action: nil)
+        let latencyFont = UIFont.monospacedDigitSystemFont(ofSize: 13, weight: .semibold)
+        latencyItem.setTitleTextAttributes([
+            .foregroundColor: latencyDisplayColor(),
+            .font: latencyFont
+        ], for: .normal)
 
         // Always show settings button
         let settingsButton = UIBarButtonItem(
@@ -309,6 +314,14 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
     private func latencyDisplayText() -> String {
         let ms = mudSocket?.lastLatencyMs ?? 0
         return ms > 0 ? "\(ms) ms" : "– ms"
+    }
+    
+    private func latencyDisplayColor() -> UIColor {
+        let ms = mudSocket?.lastLatencyMs ?? 0
+        if ms == 0 { return .secondaryLabel }
+        if ms <= 150 { return .systemGreen }
+        if ms <= 300 { return .systemYellow }
+        return .systemRed
     }
     
     private func setupMudView() {
@@ -576,6 +589,10 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
         // Create new socket
         mudSocket = MUDSocket()
         mudSocket?.delegate = self
+        // Propagate world ID for MSDP vitals attribution
+        if let world = currentWorld {
+            mudSocket?.currentWorldObjectID = world.objectID
+        }
         
         do {
             try mudSocket?.connect(to: hostname, port: UInt16(port))
