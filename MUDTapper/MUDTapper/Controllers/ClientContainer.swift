@@ -395,8 +395,10 @@ class ClientContainer: UIViewController {
             let trackColor = ThemeManager.shared.linkColor.withAlphaComponent(0.25)
             let isStale = Date().timeIntervalSince(vitals.updatedAt) > 10
             func colorForPercent(_ p: Double) -> UIColor {
-                if p >= 0.6 { return .systemGreen }
-                if p >= 0.3 { return .systemYellow }
+                let hpGreen = Double((UserDefaults.standard.string(forKey: "Vitals.HP.GreenThresholdPercent")?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap(Int.init) ?? 60) / 100.0
+                let hpYellow = Double((UserDefaults.standard.string(forKey: "Vitals.HP.YellowThresholdPercent")?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap(Int.init) ?? 30) / 100.0
+                if p >= hpGreen { return .systemGreen }
+                if p >= hpYellow { return .systemYellow }
                 return .systemRed
             }
             let lineWidth: CGFloat = 2
@@ -409,8 +411,18 @@ class ClientContainer: UIViewController {
             // Progress
             if let p = vitals.manaPercent {
                 let end = (-.pi/2) + (2 * .pi * CGFloat(max(0,min(1,p))))
-                let manaBase = UIColor.systemBlue
-                let stroke = isStale ? manaBase.withAlphaComponent(0.4) : manaBase
+                let mnGreenOpt = UserDefaults.standard.string(forKey: "Vitals.Mana.GreenThresholdPercent")?.trimmingCharacters(in: .whitespacesAndNewlines)
+                let mnYellowOpt = UserDefaults.standard.string(forKey: "Vitals.Mana.YellowThresholdPercent")?.trimmingCharacters(in: .whitespacesAndNewlines)
+                let hasMnThresholds = (Int(mnGreenOpt ?? "") != nil) && (Int(mnYellowOpt ?? "") != nil)
+                let base: UIColor = {
+                    guard hasMnThresholds else { return .systemBlue }
+                    let green = Double(Int(mnGreenOpt!) ?? 60) / 100.0
+                    let yellow = Double(Int(mnYellowOpt!) ?? 30) / 100.0
+                    if p >= green { return .systemGreen }
+                    if p >= yellow { return .systemYellow }
+                    return .systemRed
+                }()
+                let stroke = isStale ? base.withAlphaComponent(0.4) : base
                 ctx.cgContext.setStrokeColor(stroke.cgColor)
                 ctx.cgContext.addArc(center: center, radius: radius, startAngle: -.pi/2, endAngle: end, clockwise: false)
                 ctx.cgContext.strokePath()

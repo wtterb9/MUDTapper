@@ -312,8 +312,10 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
                 label.font = UIFont.monospacedDigitSystemFont(ofSize: 13, weight: .semibold)
                 func colorForHP(_ p: Double?) -> UIColor {
                     guard let p = p else { return .secondaryLabel }
-                    if p >= 0.6 { return .systemGreen }
-                    if p >= 0.3 { return .systemYellow }
+                    let green = Double((UserDefaults.standard.string(forKey: "Vitals.HP.GreenThresholdPercent")?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap(Int.init) ?? 60) / 100.0
+                    let yellow = Double((UserDefaults.standard.string(forKey: "Vitals.HP.YellowThresholdPercent")?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap(Int.init) ?? 30) / 100.0
+                    if p >= green { return .systemGreen }
+                    if p >= yellow { return .systemYellow }
                     return .systemRed
                 }
                 let hpInt = hpPct.map { Int(round($0 * 100)) }
@@ -321,7 +323,18 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
                 let hpText = hpInt.map { "\($0)%" } ?? "–%"
                 let mnText = mnInt.map { "\($0)%" } ?? "–%"
                 let baseColorHP = colorForHP(hpPct)
-                let baseColorMN = UIColor.systemBlue
+                // Mana: blue by default; if thresholds configured, colorize similarly
+                let mnGreenOpt = UserDefaults.standard.string(forKey: "Vitals.Mana.GreenThresholdPercent")?.trimmingCharacters(in: .whitespacesAndNewlines)
+                let mnYellowOpt = UserDefaults.standard.string(forKey: "Vitals.Mana.YellowThresholdPercent")?.trimmingCharacters(in: .whitespacesAndNewlines)
+                let hasMnThresholds = (Int(mnGreenOpt ?? "") != nil) && (Int(mnYellowOpt ?? "") != nil)
+                let baseColorMN: UIColor = {
+                    guard hasMnThresholds, let p = manaPct else { return .systemBlue }
+                    let green = Double(Int(mnGreenOpt!) ?? 60) / 100.0
+                    let yellow = Double(Int(mnYellowOpt!) ?? 30) / 100.0
+                    if p >= green { return .systemGreen }
+                    if p >= yellow { return .systemYellow }
+                    return .systemRed
+                }()
                 let hpColor = stale ? baseColorHP.withAlphaComponent(0.4) : baseColorHP
                 let mnColor = stale ? baseColorMN.withAlphaComponent(0.4) : baseColorMN
                 let combined = NSMutableAttributedString(string: "HP ")
