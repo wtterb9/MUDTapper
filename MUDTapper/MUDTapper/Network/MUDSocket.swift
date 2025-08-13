@@ -1770,6 +1770,12 @@ class MUDSocket: NSObject {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
         let hello = "Core.Hello {\"client\":\"MUDTapper\",\"version\":\"\(version)\"}"
         sendGMCP(hello)
+        // Declare supported modules so servers know to send updates
+        let supports = "Core.Supports.Set [\"Core 1\", \"Char 1\", \"Char.Vitals 1\"]"
+        sendGMCP(supports)
+        // Proactively request vitals if the server supports GMCP Char.Vitals
+        sendGMCP("Char.Vitals")
+        sendGMCP("Char.Vitals {}")
     }
 
     // MARK: - MCCP Decompression
