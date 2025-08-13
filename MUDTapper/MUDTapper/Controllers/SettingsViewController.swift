@@ -78,6 +78,26 @@ struct NavigationSettingsItem: SettingsItem {
     }
 }
 
+struct TextFieldSettingsItem: SettingsItem {
+    let title: String
+    let accessibilityLabel: String?
+    let accessibilityHint: String?
+    let userDefaultsKey: String
+    let placeholder: String?
+    let perWorldKey: String? // when set, value is stored per-world via objectID.uriRepresentation().absoluteString
+    let onChange: ((String) -> Void)?
+
+    init(title: String, accessibilityLabel: String? = nil, accessibilityHint: String? = nil, userDefaultsKey: String, placeholder: String? = nil, perWorldKey: String? = nil, onChange: ((String) -> Void)? = nil) {
+        self.title = title
+        self.accessibilityLabel = accessibilityLabel
+        self.accessibilityHint = accessibilityHint
+        self.userDefaultsKey = userDefaultsKey
+        self.placeholder = placeholder
+        self.perWorldKey = perWorldKey
+        self.onChange = onChange
+    }
+}
+
 // MARK: - Base Settings View Controller
 
 class SettingsViewController: UIViewController {
@@ -144,6 +164,7 @@ class SettingsViewController: UIViewController {
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "ActionCell")
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "ToggleCell")
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "NavigationCell")
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "TextFieldCell")
         
         view.addSubview(tableView)
     }
@@ -228,6 +249,10 @@ extension SettingsViewController: UITableViewDataSource {
             let cell = tableView.dequeueReusableCell(withIdentifier: "NavigationCell", for: indexPath)
             configureNavigationCell(cell, with: navItem)
             return cell
+        case let textItem as TextFieldSettingsItem:
+            let cell = tableView.dequeueReusableCell(withIdentifier: "TextFieldCell", for: indexPath)
+            configureTextFieldCell(cell, with: textItem)
+            return cell
             
         default:
             let cell = tableView.dequeueReusableCell(withIdentifier: "ActionCell", for: indexPath)
@@ -276,6 +301,47 @@ extension SettingsViewController: UITableViewDataSource {
         
         cell.accessoryType = .disclosureIndicator
         cell.selectionStyle = .default
+    }
+
+    private func configureTextFieldCell(_ cell: UITableViewCell, with item: TextFieldSettingsItem) {
+        cell.selectionStyle = .none
+        cell.backgroundColor = .secondarySystemGroupedBackground
+        cell.textLabel?.text = item.title
+        cell.textLabel?.numberOfLines = 1
+        let textField = UITextField(frame: .zero)
+        textField.translatesAutoresizingMaskIntoConstraints = false
+        textField.textAlignment = .right
+        textField.placeholder = item.placeholder
+        textField.clearButtonMode = .whileEditing
+        textField.autocorrectionType = .no
+        textField.autocapitalizationType = .none
+        textField.accessibilityLabel = item.accessibilityLabel ?? item.title
+        textField.accessibilityHint = item.accessibilityHint
+
+        let key = item.userDefaultsKey
+        if let worldScoped = item.perWorldKey {
+            // per-world namespaced key will be set by caller when building item title; value loaded in SettingsHubVC
+            textField.text = UserDefaults.standard.string(forKey: worldScoped) ?? ""
+            textField.addAction(UIAction { _ in
+                let value = textField.text ?? ""
+                UserDefaults.standard.set(value, forKey: worldScoped)
+                item.onChange?(value)
+            }, for: .editingChanged)
+        } else {
+            textField.text = UserDefaults.standard.string(forKey: key) ?? ""
+            textField.addAction(UIAction { _ in
+                let value = textField.text ?? ""
+                UserDefaults.standard.set(value, forKey: key)
+                item.onChange?(value)
+            }, for: .editingChanged)
+        }
+
+        cell.contentView.addSubview(textField)
+        NSLayoutConstraint.activate([
+            textField.centerYAnchor.constraint(equalTo: cell.contentView.centerYAnchor),
+            textField.trailingAnchor.constraint(equalTo: cell.contentView.trailingAnchor, constant: -16),
+            textField.leadingAnchor.constraint(greaterThanOrEqualTo: cell.contentView.leadingAnchor, constant: 160)
+        ])
     }
     
     @objc private func toggleValueChanged(_ sender: UISwitch) {

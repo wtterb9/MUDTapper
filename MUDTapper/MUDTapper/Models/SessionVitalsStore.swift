@@ -13,13 +13,13 @@ final class SessionVitalsStore {
         var updatedAt: Date
 
         var hpPercent: Double? {
-            guard let hp = hp, let max = hpMax, max > 0 else { return nil }
-            return min(1.0, max(0.0, Double(hp) / Double(max)))
+            guard let hp = hp, let maxValue = hpMax, maxValue > 0 else { return nil }
+            return Swift.min(1.0, Swift.max(0.0, Double(hp) / Double(maxValue)))
         }
 
         var manaPercent: Double? {
-            guard let mana = mana, let max = manaMax, max > 0 else { return nil }
-            return min(1.0, max(0.0, Double(mana) / Double(max)))
+            guard let mana = mana, let maxValue = manaMax, maxValue > 0 else { return nil }
+            return Swift.min(1.0, Swift.max(0.0, Double(mana) / Double(maxValue)))
         }
     }
 
@@ -31,10 +31,28 @@ final class SessionVitalsStore {
             var current = self.vitalsByWorldID[worldID] ?? Vitals(hp: nil, hpMax: nil, mana: nil, manaMax: nil, updatedAt: Date())
             // Map common MSDP variable names
             // Accept multiple aliases to maximize compatibility
-            if let hp = self.firstInt(forKeys: ["HEALTH", "HP"], in: variables) { current.hp = hp }
-            if let hpMax = self.firstInt(forKeys: ["HEALTH_MAX", "MAX_HEALTH", "HP_MAX", "MAX_HP"], in: variables) { current.hpMax = hpMax }
-            if let mana = self.firstInt(forKeys: ["MANA", "MN"], in: variables) { current.mana = mana }
-            if let manaMax = self.firstInt(forKeys: ["MANA_MAX", "MAX_MANA", "MN_MAX", "MAX_MN"], in: variables) { current.manaMax = manaMax }
+            // Per-world overrides
+            let prefix = "MSDP.Mapping.\(worldID.uriRepresentation().absoluteString)."
+            let hpOverride = UserDefaults.standard.string(forKey: prefix + "HP")?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let hpMaxOverride = UserDefaults.standard.string(forKey: prefix + "HP_MAX")?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let manaOverride = UserDefaults.standard.string(forKey: prefix + "MANA")?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let manaMaxOverride = UserDefaults.standard.string(forKey: prefix + "MANA_MAX")?.trimmingCharacters(in: .whitespacesAndNewlines)
+
+            if let key = hpOverride, !key.isEmpty, let hp = self.firstInt(forKeys: [key], in: variables) {
+                current.hp = hp
+            } else if let hp = self.firstInt(forKeys: ["HEALTH", "HP"], in: variables) { current.hp = hp }
+
+            if let key = hpMaxOverride, !key.isEmpty, let hpMax = self.firstInt(forKeys: [key], in: variables) {
+                current.hpMax = hpMax
+            } else if let hpMax = self.firstInt(forKeys: ["HEALTH_MAX", "MAX_HEALTH", "HP_MAX", "MAX_HP"], in: variables) { current.hpMax = hpMax }
+
+            if let key = manaOverride, !key.isEmpty, let mana = self.firstInt(forKeys: [key], in: variables) {
+                current.mana = mana
+            } else if let mana = self.firstInt(forKeys: ["MANA", "MN"], in: variables) { current.mana = mana }
+
+            if let key = manaMaxOverride, !key.isEmpty, let manaMax = self.firstInt(forKeys: [key], in: variables) {
+                current.manaMax = manaMax
+            } else if let manaMax = self.firstInt(forKeys: ["MANA_MAX", "MAX_MANA", "MN_MAX", "MAX_MN"], in: variables) { current.manaMax = manaMax }
 
             current.updatedAt = Date()
             self.vitalsByWorldID[worldID] = current

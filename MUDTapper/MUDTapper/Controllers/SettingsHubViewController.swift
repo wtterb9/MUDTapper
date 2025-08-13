@@ -92,7 +92,7 @@ class SettingsHubViewController: SettingsViewController {
     }
 
     private func createNetworkingSection() -> SettingsSection {
-        let items: [SettingsItem] = [
+        var items: [SettingsItem] = [
             ToggleSettingsItem(
                 title: "Enable GMCP",
                 accessibilityHint: "Negotiates GMCP and sends Core.Hello",
@@ -118,6 +118,20 @@ class SettingsHubViewController: SettingsViewController {
                 defaultValue: true
             )
         ]
+        // If a world is in context, offer MSDP vitals mapping overrides
+        if let world = world {
+            let nsKey = { (suffix: String) in
+                return "MSDP.Mapping.\(world.objectID.uriRepresentation().absoluteString).\(suffix)"
+            }
+            let mappingItems: [SettingsItem] = [
+                TextFieldSettingsItem(title: "HP variable name", userDefaultsKey: nsKey("HP"), placeholder: "HEALTH or HP", perWorldKey: nsKey("HP")),
+                TextFieldSettingsItem(title: "HP max variable", userDefaultsKey: nsKey("HP_MAX"), placeholder: "HEALTH_MAX or MAX_HP", perWorldKey: nsKey("HP_MAX")),
+                TextFieldSettingsItem(title: "Mana variable name", userDefaultsKey: nsKey("MANA"), placeholder: "MANA or MN", perWorldKey: nsKey("MANA")),
+                TextFieldSettingsItem(title: "Mana max variable", userDefaultsKey: nsKey("MANA_MAX"), placeholder: "MANA_MAX or MAX_MANA", perWorldKey: nsKey("MANA_MAX"))
+            ]
+            items.append(contentsOf: mappingItems)
+            return SettingsSection(title: "Networking", footer: "GMCP/MSDP/MCCP toggles apply globally. MSDP vitals names are per‑world.", items: items)
+        }
         return SettingsSection(title: "Networking", footer: "These settings apply to all worlds.", items: items)
     }
 

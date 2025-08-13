@@ -1,4 +1,5 @@
 import Foundation
+import CoreData
 import Network
 import SystemConfiguration
 import UIKit
@@ -1485,10 +1486,10 @@ class MUDSocket: NSObject {
                             } else if opt == MSDP {
                                 // MSDP payload; attempt simple parsing of VAR/VAL flat pairs
                                 // Spec-compliant arrays/tables are not fully handled yet
-                                let vars = self?.parseMSDP(payload: payload) ?? [:]
+                                let vars = self.parseMSDP(payload: payload)
                                 if !vars.isEmpty {
                                     print("[MSDP] Parsed: \(vars)")
-                                    if let worldID = self?.currentWorldObjectID {
+                                    if let worldID = self.currentWorldObjectID {
                                         SessionVitalsStore.shared.update(worldID: worldID, with: vars)
                                     }
                                 } else {

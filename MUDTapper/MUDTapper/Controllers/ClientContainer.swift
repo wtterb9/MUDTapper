@@ -1,5 +1,6 @@
 import UIKit
 import CoreData
+import Foundation
 
 // MARK: - Layout Constants
 
