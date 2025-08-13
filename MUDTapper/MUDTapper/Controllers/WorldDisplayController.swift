@@ -93,8 +93,16 @@ class WorldDisplayController: UIViewController {
             action: #selector(reorderButtonTapped)
         )
         
+        // Close current world button
+        let closeButton = UIBarButtonItem(
+            title: "Close",
+            style: .plain,
+            target: self,
+            action: #selector(closeCurrentWorldTapped)
+        )
+        
         navItem.leftBarButtonItem = titleButton
-        navItem.rightBarButtonItems = [addButton, reorderButton]
+        navItem.rightBarButtonItems = [addButton, reorderButton, closeButton]
         navBar.setItems([navItem], animated: false)
         
         // Create table view
@@ -128,6 +136,11 @@ class WorldDisplayController: UIViewController {
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
+    }
+    
+    @objc private func closeCurrentWorldTapped() {
+        // Delegate to the container's close sheet
+        ClientContainer.shared?.showCloseWorldOptions()
     }
     
     private func setupFetchedResultsController() {
