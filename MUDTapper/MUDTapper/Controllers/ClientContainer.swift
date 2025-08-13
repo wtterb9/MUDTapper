@@ -409,8 +409,8 @@ class ClientContainer: UIViewController {
             // Progress
             if let p = vitals.manaPercent {
                 let end = (-.pi/2) + (2 * .pi * CGFloat(max(0,min(1,p))))
-                let manaColor = colorForPercent(p)
-                let stroke = isStale ? manaColor.withAlphaComponent(0.4) : manaColor
+                let manaBase = UIColor.systemBlue
+                let stroke = isStale ? manaBase.withAlphaComponent(0.4) : manaBase
                 ctx.cgContext.setStrokeColor(stroke.cgColor)
                 ctx.cgContext.addArc(center: center, radius: radius, startAngle: -.pi/2, endAngle: end, clockwise: false)
                 ctx.cgContext.strokePath()

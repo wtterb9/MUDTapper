@@ -310,7 +310,7 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
             if hpPct != nil || manaPct != nil {
                 let label = UILabel()
                 label.font = UIFont.monospacedDigitSystemFont(ofSize: 13, weight: .semibold)
-                func colorFor(_ p: Double?) -> UIColor {
+                func colorForHP(_ p: Double?) -> UIColor {
                     guard let p = p else { return .secondaryLabel }
                     if p >= 0.6 { return .systemGreen }
                     if p >= 0.3 { return .systemYellow }
@@ -320,8 +320,8 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
                 let mnInt = manaPct.map { Int(round($0 * 100)) }
                 let hpText = hpInt.map { "\($0)%" } ?? "–%"
                 let mnText = mnInt.map { "\($0)%" } ?? "–%"
-                let baseColorHP = colorFor(hpPct)
-                let baseColorMN = colorFor(manaPct)
+                let baseColorHP = colorForHP(hpPct)
+                let baseColorMN = UIColor.systemBlue
                 let hpColor = stale ? baseColorHP.withAlphaComponent(0.4) : baseColorHP
                 let mnColor = stale ? baseColorMN.withAlphaComponent(0.4) : baseColorMN
                 let combined = NSMutableAttributedString(string: "HP ")
