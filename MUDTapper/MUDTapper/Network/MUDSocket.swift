@@ -1416,6 +1416,17 @@ class MUDSocket: NSObject {
     private let WONT: UInt8 = 252
     private let SB: UInt8 = 250
     private let SE: UInt8 = 240
+    // Telnet single-byte commands (IAC <cmd>) that have no option byte
+    private let EOR: UInt8 = 239  // End of Record
+    private let NOP: UInt8 = 241
+    private let DM: UInt8 = 242   // Data Mark
+    private let BRK: UInt8 = 243
+    private let IP: UInt8 = 244   // Interrupt Process
+    private let AO: UInt8 = 245   // Abort Output
+    private let AYT: UInt8 = 246  // Are You There
+    private let EC: UInt8 = 247   // Erase Character
+    private let EL: UInt8 = 248   // Erase Line
+    private let GA: UInt8 = 249   // Go Ahead
     private let TTYPE: UInt8 = 24
     private let SEND: UInt8 = 1
     private let IS: UInt8 = 0
@@ -1425,9 +1436,10 @@ class MUDSocket: NSObject {
     private let COMPRESS2: UInt8 = 86
 
     private func handleTelnetNegotiation(_ data: Data) -> Data {
-        // If MCCP is active, the entire stream is compressed; just decompress and return
+        // If MCCP is active, decompress first, then still strip any Telnet commands
         if mccpActive {
-            return decompressData(data)
+            let decompressed = decompressData(data)
+            return stripTelnetCommands(from: decompressed)
         }
         var i = 0
         var filteredData = Data()
@@ -1564,12 +1576,16 @@ class MUDSocket: NSObject {
                                 send(Data([IAC, verb == DONT ? WONT : DONT, opt]))
                                 i += 3
                                 continue
+                            } else if verb == EOR || verb == NOP || verb == DM || verb == BRK || verb == IP || verb == AO || verb == AYT || verb == EC || verb == EL || verb == GA {
+                                // Single-byte telnet command: drop IAC+verb
+                                i += 2
+                                continue
                             }
                         }
                     }
                 }
-                // If malformed IAC, drop the byte
-                i += 1
+                // Unknown/malformed IAC: drop IAC and the following verb if present
+                i += (i + 1 < bytes.count ? 2 : 1)
                 continue
             }
             // Regular data byte (uncompressed)
@@ -1577,6 +1593,53 @@ class MUDSocket: NSObject {
             i += 1
         }
         return filteredData
+    }
+
+    // Strip telnet commands from an already-decompressed payload
+    private func stripTelnetCommands(from data: Data) -> Data {
+        var i = 0
+        var filtered = Data()
+        let bytes = [UInt8](data)
+        while i < bytes.count {
+            let b = bytes[i]
+            if b == IAC {
+                if i + 1 < bytes.count {
+                    let verb = bytes[i+1]
+                    if verb == SB {
+                        // Skip until IAC SE
+                        var j = i + 2
+                        var foundEnd = false
+                        while j + 1 < bytes.count {
+                            if bytes[j] == IAC && bytes[j+1] == SE {
+                                foundEnd = true
+                                break
+                            }
+                            j += 1
+                        }
+                        i = foundEnd ? (j + 2) : bytes.count
+                        continue
+                    } else if verb == EOR || verb == NOP || verb == DM || verb == BRK || verb == IP || verb == AO || verb == AYT || verb == EC || verb == EL || verb == GA {
+                        i += 2
+                        continue
+                    } else if verb == DO || verb == WILL || verb == DONT || verb == WONT {
+                        // Skip negotiation triplet
+                        i += (i + 2 < bytes.count ? 3 : 2)
+                        continue
+                    } else {
+                        // Unknown: drop IAC+verb
+                        i += 2
+                        continue
+                    }
+                } else {
+                    // Lone IAC, drop
+                    i += 1
+                    continue
+                }
+            }
+            filtered.append(b)
+            i += 1
+        }
+        return filtered
     }
 
     private func proactivelyNegotiateTelnetOptions() {
