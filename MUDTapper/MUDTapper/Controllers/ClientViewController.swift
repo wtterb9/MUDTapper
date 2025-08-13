@@ -300,6 +300,24 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
             .font: latencyFont
         ], for: .normal)
 
+        // Active-session vitals (HP/Mana) next to latency
+        var vitalsItem: UIBarButtonItem?
+        if let worldID = worldObjectID, let vitals = SessionVitalsStore.shared.vitals(for: worldID) {
+            let now = Date()
+            let stale = now.timeIntervalSince(vitals.updatedAt) > 10
+            let hpPct = vitals.hpPercent
+            let manaPct = vitals.manaPercent
+            if hpPct != nil || manaPct != nil {
+                let label = UILabel()
+                label.font = UIFont.monospacedDigitSystemFont(ofSize: 13, weight: .semibold)
+                label.textColor = stale ? .secondaryLabel : .label
+                let hpText = hpPct.map { Int(round($0 * 100)) }?.description ?? "–"
+                let mnText = manaPct.map { Int(round($0 * 100)) }?.description ?? "–"
+                label.text = "HP \(hpText)%  MN \(mnText)%"
+                vitalsItem = UIBarButtonItem(customView: label)
+            }
+        }
+
         // Always show settings button
         let settingsButton = UIBarButtonItem(
             image: UIImage(systemName: "gear"),
@@ -308,7 +326,11 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
             action: #selector(settingsButtonTapped)
         )
         
-        navigationToolbar.items = [worldButton, flexSpace, connectButton, latencyItem, settingsButton]
+        if let vItem = vitalsItem {
+            navigationToolbar.items = [worldButton, flexSpace, connectButton, vItem, latencyItem, settingsButton]
+        } else {
+            navigationToolbar.items = [worldButton, flexSpace, connectButton, latencyItem, settingsButton]
+        }
     }
 
     private func latencyDisplayText() -> String {
@@ -450,6 +472,21 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
             name: UIContentSizeCategory.didChangeNotification,
             object: nil
         )
+
+        // Vitals updates (MSDP/GMCP)
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleVitalsUpdate(_:)),
+            name: .vitalsDidUpdate,
+            object: nil
+        )
+    }
+
+    @objc private func handleVitalsUpdate(_ note: Notification) {
+        guard let id = note.object as? NSManagedObjectID else { return }
+        if id == worldObjectID {
+            DispatchQueue.main.async { self.updateNavigationToolbar() }
+        }
     }
     
     private func setupKeyboardHandling() {
