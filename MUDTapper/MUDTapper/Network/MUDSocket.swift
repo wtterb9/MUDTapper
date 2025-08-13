@@ -112,7 +112,8 @@ class MUDSocket: NSObject {
     
     // MARK: - MSDP Support
     
-    /// Send an MSDP variable to the server
+    /// Send an MSDP variable=value pair
+    /// MSDP framing: IAC SB MSDP VAR <variable> VAL <value> IAC SE
     /// - Parameters:
     ///   - variable: The MSDP variable name (e.g., "XTERM_256_COLORS")
     ///   - value: The value to send (e.g., "1")
@@ -122,20 +123,23 @@ class MUDSocket: NSObject {
             return
         }
         
-        // MSDP format: IAC SB MSDP variable MSDP_VAL value IAC SE
+        // MSDP tokens
+        let MSDP_VAR: UInt8 = 1
+        let MSDP_VAL: UInt8 = 2
+
+        // MSDP format: IAC SB MSDP VAR <variable> VAL <value> IAC SE
         var msdpData: [UInt8] = [
             255, 250, 69, // IAC SB MSDP
         ]
-        
-        // Add variable name
+
+        // VAR <variable>
+        msdpData.append(MSDP_VAR)
         msdpData.append(contentsOf: variable.utf8)
-        
-        // Add MSDP_VAL separator
-        msdpData.append(1) // MSDP_VAL
-        
-        // Add value
+
+        // VAL <value>
+        msdpData.append(MSDP_VAL)
         msdpData.append(contentsOf: value.utf8)
-        
+
         // Add IAC SE
         msdpData.append(contentsOf: [255, 240]) // IAC SE
         
@@ -156,6 +160,46 @@ class MUDSocket: NSObject {
     /// Send XTERM_256_COLORS=1 to enable 256-color support
     func sendXterm256Colors() {
         sendMSDP(variable: "XTERM_256_COLORS", value: "1")
+    }
+
+    /// Ask server to REPORT a set of MSDP variables periodically
+    /// Encoded as: IAC SB MSDP VAR REPORT VAL <space-separated var list> IAC SE
+    private func sendMSDPReport(variables: [String]) {
+        guard connection?.state == .ready else { return }
+        let MSDP_VAR: UInt8 = 1
+        let MSDP_VAL: UInt8 = 2
+        var bytes: [UInt8] = [255, 250, 69] // IAC SB MSDP
+        bytes.append(MSDP_VAR)
+        bytes.append(contentsOf: "REPORT".utf8)
+        bytes.append(MSDP_VAL)
+        let joined = variables.joined(separator: " ")
+        bytes.append(contentsOf: joined.utf8)
+        bytes.append(contentsOf: [255, 240]) // IAC SE
+        send(Data(bytes))
+        print("[MSDP] -> REPORT \(joined)")
+    }
+
+    /// Subscribe to HP/Mana vitals via MSDP using per-world overrides or defaults
+    private func autoSubscribeMSDPVitals() {
+        guard msdpEnabled, NetworkingPreferences.msdpEnabled else { return }
+        var keys: [String] = []
+        // Per-world overrides if present
+        if let worldID = currentWorldObjectID {
+            let prefix = "MSDP.Mapping.\(worldID.uriRepresentation().absoluteString)."
+            let hp = UserDefaults.standard.string(forKey: prefix + "HP")?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let hpMax = UserDefaults.standard.string(forKey: prefix + "HP_MAX")?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let mn = UserDefaults.standard.string(forKey: prefix + "MANA")?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let mnMax = UserDefaults.standard.string(forKey: prefix + "MANA_MAX")?.trimmingCharacters(in: .whitespacesAndNewlines)
+            for k in [hp, hpMax, mn, mnMax] { if let k, !k.isEmpty { keys.append(k) } }
+        }
+        // Common aliases fallback
+        if keys.isEmpty {
+            keys.append(contentsOf: ["HEALTH", "HEALTH_MAX", "HP", "HP_MAX", "MAX_HP", "MANA", "MANA_MAX", "MN", "MAX_MN"])    
+        }
+        // Deduplicate while preserving order
+        var seen = Set<String>()
+        let ordered = keys.filter { seen.insert($0.uppercased()).inserted }
+        sendMSDPReport(variables: ordered)
     }
 
     // MARK: - Connection Management
@@ -1479,9 +1523,26 @@ class MUDSocket: NSObject {
                                     send(Data(response))
                                 }
                             } else if opt == GMCP {
-                                // GMCP payload is text – don't forward to output; optionally handle
+                                // GMCP payload is text – optionally parse common vitals
                                 if let text = String(data: payload, encoding: .utf8) {
                                     print("[GMCP] <- \(text)")
+                                    if text.hasPrefix("Char.Vitals ") || text.hasPrefix("Char.Vitals\t") {
+                                        // Expected forms: Char.Vitals {json} OR Char.Vitals\t{json}
+                                        if let jsonStart = text.firstIndex(of: "{") {
+                                            let json = String(text[jsonStart...])
+                                            if let data = json.data(using: .utf8),
+                                               let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                                                var flat: [String: String] = [:]
+                                                for (k, v) in dict {
+                                                    if let s = v as? String { flat[k] = s }
+                                                    else if let n = v as? NSNumber { flat[k] = n.stringValue }
+                                                }
+                                                if let worldID = self.currentWorldObjectID, !flat.isEmpty {
+                                                    SessionVitalsStore.shared.update(worldID: worldID, with: flat)
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             } else if opt == MSDP {
                                 // MSDP payload; attempt simple parsing of VAR/VAL flat pairs
@@ -1536,6 +1597,8 @@ class MUDSocket: NSObject {
                                     if NetworkingPreferences.msdpEnabled {
                                         send(Data([IAC, WILL, MSDP]))
                                         print("[MSDP] DO received → WILL sent")
+                                        // Auto-subscribe after enabling
+                                        autoSubscribeMSDPVitals()
                                     } else {
                                         send(Data([IAC, WONT, MSDP]))
                                     }
@@ -1564,6 +1627,8 @@ class MUDSocket: NSObject {
                                         send(Data([IAC, DO, MSDP]))
                                         msdpEnabled = true
                                         print("[MSDP] WILL received → DO sent")
+                                        // Auto-subscribe when server WILLs MSDP
+                                        autoSubscribeMSDPVitals()
                                     } else {
                                         send(Data([IAC, DONT, MSDP]))
                                     }
