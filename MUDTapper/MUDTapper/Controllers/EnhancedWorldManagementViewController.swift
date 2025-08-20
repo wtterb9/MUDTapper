@@ -1020,8 +1020,8 @@ extension WorldDirectoryViewController: UITableViewDataSource {
         cell.textLabel?.text = world.name
         cell.detailTextLabel?.text = "\(world.hostname):\(world.port) • \(world.playerCount) players"
         cell.backgroundColor = ThemeManager.shared.terminalBackgroundColor
-        cell.textLabel?.textColor = ThemeManager.shared.currentTheme.fontColor
-        cell.detailTextLabel?.textColor = ThemeManager.shared.currentTheme.fontColor.withAlphaComponent(0.7)
+        cell.textLabel?.textColor = ThemeManager.shared.terminalTextColor
+        cell.detailTextLabel?.textColor = ThemeManager.shared.terminalTextColor.withAlphaComponent(0.7)
         cell.accessoryType = .disclosureIndicator
         
         return cell

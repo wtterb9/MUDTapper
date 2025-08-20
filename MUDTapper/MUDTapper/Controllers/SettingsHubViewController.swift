@@ -24,6 +24,7 @@ class SettingsHubViewController: SettingsViewController {
             sections.append(createAutomationSection(world: world))
         }
 
+        sections.append(createVitalsSection())
         sections.append(createAppearanceSection())
         sections.append(createInputSection())
         sections.append(createNetworkingSection())
@@ -31,6 +32,57 @@ class SettingsHubViewController: SettingsViewController {
         sections.append(createAboutSection())
 
         setSections(sections)
+    }
+
+    private func createVitalsSection() -> SettingsSection {
+        // Keys for global thresholds (percent values)
+        let hpGreenKey = "Vitals.HP.GreenThresholdPercent"
+        let hpYellowKey = "Vitals.HP.YellowThresholdPercent"
+        let mnGreenKey = "Vitals.Mana.GreenThresholdPercent"
+        let mnYellowKey = "Vitals.Mana.YellowThresholdPercent"
+
+        let items: [SettingsItem] = [
+            TextFieldSettingsItem(
+                title: "HP green ≥ %",
+                userDefaultsKey: hpGreenKey,
+                placeholder: "60",
+                onChange: { value in
+                    Self.normalizePercentKey(hpGreenKey, fallback: 60)
+                }
+            ),
+            TextFieldSettingsItem(
+                title: "HP yellow ≥ %",
+                userDefaultsKey: hpYellowKey,
+                placeholder: "30",
+                onChange: { value in
+                    Self.normalizePercentKey(hpYellowKey, fallback: 30)
+                }
+            ),
+            TextFieldSettingsItem(
+                title: "Mana green ≥ %",
+                userDefaultsKey: mnGreenKey,
+                placeholder: "60",
+                onChange: { value in
+                    Self.normalizePercentKey(mnGreenKey, fallback: 60)
+                }
+            ),
+            TextFieldSettingsItem(
+                title: "Mana yellow ≥ %",
+                userDefaultsKey: mnYellowKey,
+                placeholder: "30",
+                onChange: { value in
+                    Self.normalizePercentKey(mnYellowKey, fallback: 30)
+                }
+            )
+        ]
+        return SettingsSection(title: "Vitals & HUD", footer: "Set percent thresholds used by HP coloring. Mana remains blue (thresholds reserved for future behaviors).", items: items)
+    }
+
+    private static func normalizePercentKey(_ key: String, fallback: Int) {
+        let raw = UserDefaults.standard.string(forKey: key) ?? ""
+        let parsed = Int(raw.trimmingCharacters(in: .whitespacesAndNewlines)) ?? fallback
+        let clamped = max(0, min(100, parsed))
+        UserDefaults.standard.set("\(clamped)", forKey: key)
     }
 
     private func createWorldSection(world: World) -> SettingsSection {
@@ -41,7 +93,8 @@ class SettingsHubViewController: SettingsViewController {
             ) { [weak self] in
                 let vc = WorldEditController(world: world)
                 vc.delegate = self as? WorldEditControllerDelegate
-                return vc
+                let navController = UINavigationController(rootViewController: vc)
+                return navController
             },
             NavigationSettingsItem(
                 title: "🌍 World Management",
@@ -85,7 +138,12 @@ class SettingsHubViewController: SettingsViewController {
                 title: "⌨️ Input & Controls",
                 accessibilityHint: "Keyboard, commands, radial controls"
             ) {
-                InputSettingsViewController()
+                // If presented from a client, try to pass it through via responder chain
+                let client = self.presentingViewController as? UINavigationController
+                    ?? self.navigationController?.presentingViewController as? UINavigationController
+                let top = (client?.presentingViewController as? ClientViewController)
+                    ?? self.presentingViewController as? ClientViewController
+                return InputSettingsViewController(clientViewController: top)
             }
         ]
         return SettingsSection(title: "Input", items: items)

@@ -33,11 +33,7 @@
 	<string>1</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<key>UIAppFonts</key>
-	<array>
-		<string>SourceCodePro-Regular.ttf</string>
-		<string>SourceCodePro-Bold.ttf</string>
-	</array>
+	<!-- Removed UIAppFonts entries referencing missing TTFs -->
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

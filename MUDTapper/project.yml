@@ -53,9 +53,7 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        UIAppFonts:
-          - "SourceCodePro-Regular.ttf"
-          - "SourceCodePro-Bold.ttf"
+        # No bundled fonts; use system monospace fonts to avoid missing-file errors
         CFBundleURLTypes:
           - CFBundleURLName: "Telnet URL"
             CFBundleURLSchemes:

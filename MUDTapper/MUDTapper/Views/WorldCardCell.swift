@@ -44,7 +44,7 @@ class WorldCardCell: UICollectionViewCell {
         cardView.backgroundColor = ThemeManager.shared.terminalBackgroundColor
         cardView.layer.cornerRadius = 12
         cardView.layer.borderWidth = 1
-        cardView.layer.borderColor = UIColor.separator.cgColor
+        cardView.layer.borderColor = ThemeManager.shared.terminalTextColor.withAlphaComponent(0.2).cgColor
         cardView.layer.shadowColor = UIColor.black.cgColor
         cardView.layer.shadowOffset = CGSize(width: 0, height: 2)
         cardView.layer.shadowRadius = 4
@@ -56,23 +56,23 @@ class WorldCardCell: UICollectionViewCell {
     private func setupLabels() {
         // World name
         worldNameLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
-        worldNameLabel.textColor = .label
+        worldNameLabel.textColor = ThemeManager.shared.terminalTextColor
         worldNameLabel.translatesAutoresizingMaskIntoConstraints = false
         
         // Hostname
         hostnameLabel.font = UIFont.monospacedSystemFont(ofSize: 14, weight: .regular)
-        hostnameLabel.textColor = .secondaryLabel
+        hostnameLabel.textColor = ThemeManager.shared.terminalTextColor.withAlphaComponent(0.7)
         hostnameLabel.translatesAutoresizingMaskIntoConstraints = false
         
         // Last connected
         lastConnectedLabel.font = UIFont.systemFont(ofSize: 12, weight: .regular)
-        lastConnectedLabel.textColor = .tertiaryLabel
+        lastConnectedLabel.textColor = ThemeManager.shared.terminalTextColor.withAlphaComponent(0.5)
         lastConnectedLabel.translatesAutoresizingMaskIntoConstraints = false
         
         // Automation badge
         automationBadge.font = UIFont.systemFont(ofSize: 10, weight: .medium)
-        automationBadge.textColor = .systemBlue
-        automationBadge.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.1)
+        automationBadge.textColor = ThemeManager.shared.linkColor
+        automationBadge.backgroundColor = ThemeManager.shared.linkColor.withAlphaComponent(0.1)
         automationBadge.layer.cornerRadius = 8
         automationBadge.textAlignment = .center
         automationBadge.translatesAutoresizingMaskIntoConstraints = false
@@ -103,7 +103,7 @@ class WorldCardCell: UICollectionViewCell {
     private func setupButtons() {
         // Favorite button
         favoriteButton.translatesAutoresizingMaskIntoConstraints = false
-        favoriteButton.tintColor = .systemRed
+        favoriteButton.tintColor = ThemeManager.shared.linkColor
         favoriteButton.addTarget(self, action: #selector(favoriteButtonTapped), for: .touchUpInside)
         
         // Quick connect button
@@ -111,8 +111,8 @@ class WorldCardCell: UICollectionViewCell {
         if #available(iOS 15.0, *) {
             var config = UIButton.Configuration.filled()
             config.title = "Connect"
-            config.baseBackgroundColor = UIColor.systemBlue.withAlphaComponent(0.1)
-            config.baseForegroundColor = .systemBlue
+            config.baseBackgroundColor = ThemeManager.shared.linkColor.withAlphaComponent(0.1)
+            config.baseForegroundColor = ThemeManager.shared.linkColor
             config.contentInsets = NSDirectionalEdgeInsets(top: 4, leading: 8, bottom: 4, trailing: 8)
             config.cornerStyle = .medium
             config.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
@@ -123,9 +123,9 @@ class WorldCardCell: UICollectionViewCell {
             quickConnectButton.configuration = config
         } else {
             quickConnectButton.setTitle("Connect", for: .normal)
-            quickConnectButton.setTitleColor(.systemBlue, for: .normal)
+            quickConnectButton.setTitleColor(ThemeManager.shared.linkColor, for: .normal)
             quickConnectButton.titleLabel?.font = UIFont.systemFont(ofSize: 12, weight: .medium)
-            quickConnectButton.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.1)
+            quickConnectButton.backgroundColor = ThemeManager.shared.linkColor.withAlphaComponent(0.1)
             quickConnectButton.layer.cornerRadius = 8
             quickConnectButton.contentEdgeInsets = UIEdgeInsets(top: 4, left: 8, bottom: 4, right: 8)
         }
@@ -195,7 +195,7 @@ class WorldCardCell: UICollectionViewCell {
         hostnameLabel.text = "\(world.hostname ?? ""):\(world.port)"
         
         // Connection status
-        connectionIndicator.backgroundColor = isConnected ? .systemGreen : .systemRed
+        connectionIndicator.backgroundColor = isConnected ? ThemeManager.shared.linkColor : ThemeManager.shared.terminalTextColor.withAlphaComponent(0.3)
         
         // Favorite status
         let favoriteImage = world.isFavorite ? UIImage(systemName: "heart.fill") : UIImage(systemName: "heart")
@@ -204,9 +204,9 @@ class WorldCardCell: UICollectionViewCell {
         // Quick connect button
         quickConnectButton.setTitle(isConnected ? "Switch" : "Connect", for: .normal)
         quickConnectButton.backgroundColor = isConnected ? 
-            UIColor.systemOrange.withAlphaComponent(0.1) : 
-            UIColor.systemBlue.withAlphaComponent(0.1)
-        quickConnectButton.setTitleColor(isConnected ? .systemOrange : .systemBlue, for: .normal)
+            ThemeManager.shared.terminalTextColor.withAlphaComponent(0.1) : 
+            ThemeManager.shared.linkColor.withAlphaComponent(0.1)
+        quickConnectButton.setTitleColor(isConnected ? ThemeManager.shared.terminalTextColor : ThemeManager.shared.linkColor, for: .normal)
         
         // Last connected
         if let lastConnected = world.lastModified {
@@ -228,8 +228,8 @@ class WorldCardCell: UICollectionViewCell {
         
         // Update card appearance for connection state
         cardView.layer.borderColor = isConnected ? 
-            UIColor.systemGreen.withAlphaComponent(0.3).cgColor : 
-            UIColor.separator.cgColor
+            ThemeManager.shared.linkColor.withAlphaComponent(0.3).cgColor : 
+            ThemeManager.shared.terminalTextColor.withAlphaComponent(0.2).cgColor
     }
     
     private func getAutomationCount(for world: World) -> Int {
@@ -319,7 +319,6 @@ class AddWorldCell: UICollectionViewCell {
     }
     
     private func setupUI() {
-        // Card view
         cardView.translatesAutoresizingMaskIntoConstraints = false
         cardView.backgroundColor = ThemeManager.shared.terminalBackgroundColor
         cardView.layer.cornerRadius = 12
@@ -327,24 +326,21 @@ class AddWorldCell: UICollectionViewCell {
         cardView.layer.borderColor = UIColor.systemBlue.withAlphaComponent(0.3).cgColor
         cardView.layer.masksToBounds = true
         
-        // Add icon
         addIconImageView.translatesAutoresizingMaskIntoConstraints = false
         addIconImageView.image = UIImage(systemName: "plus.circle.fill")
-        addIconImageView.tintColor = .systemBlue
+        addIconImageView.tintColor = ThemeManager.shared.linkColor
         addIconImageView.contentMode = .scaleAspectFit
         
-        // Title
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.text = "Add New World"
         titleLabel.font = UIFont.systemFont(ofSize: 16, weight: .semibold)
-        titleLabel.textColor = .systemBlue
+        titleLabel.textColor = ThemeManager.shared.terminalTextColor
         titleLabel.textAlignment = .center
         
-        // Subtitle
         subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
-        subtitleLabel.text = "Create, import, or browse"
+        subtitleLabel.text = "Create a new MUD connection"
         subtitleLabel.font = UIFont.systemFont(ofSize: 12, weight: .regular)
-        subtitleLabel.textColor = .secondaryLabel
+        subtitleLabel.textColor = ThemeManager.shared.terminalTextColor.withAlphaComponent(0.7)
         subtitleLabel.textAlignment = .center
         
         contentView.addSubview(cardView)
@@ -381,7 +377,7 @@ class AddWorldCell: UICollectionViewCell {
                     CGAffineTransform(scaleX: 0.95, y: 0.95) : 
                     .identity
                 self.cardView.backgroundColor = self.isHighlighted ? 
-                    UIColor.systemBlue.withAlphaComponent(0.1) : 
+                    ThemeManager.shared.linkColor.withAlphaComponent(0.1) : 
                     ThemeManager.shared.terminalBackgroundColor
             }
         }
@@ -409,14 +405,14 @@ class WorldSectionHeader: UICollectionReusableView {
     private func setupUI() {
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.font = UIFont.systemFont(ofSize: 18, weight: .semibold)
-        titleLabel.textColor = .label
+        titleLabel.textColor = ThemeManager.shared.terminalTextColor
         
         subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
         subtitleLabel.font = UIFont.systemFont(ofSize: 14, weight: .regular)
-        subtitleLabel.textColor = .secondaryLabel
+        subtitleLabel.textColor = ThemeManager.shared.terminalTextColor.withAlphaComponent(0.7)
         
         separatorView.translatesAutoresizingMaskIntoConstraints = false
-        separatorView.backgroundColor = .separator
+        separatorView.backgroundColor = ThemeManager.shared.terminalTextColor.withAlphaComponent(0.2)
         
         addSubview(titleLabel)
         addSubview(subtitleLabel)

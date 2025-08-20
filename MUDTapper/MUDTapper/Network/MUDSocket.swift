@@ -179,6 +179,22 @@ class MUDSocket: NSObject {
         print("[MSDP] -> REPORT \(joined)")
     }
 
+    /// Request an immediate one-time SEND of the given MSDP variables
+    private func sendMSDPSend(variables: [String]) {
+        guard connection?.state == .ready else { return }
+        let MSDP_VAR: UInt8 = 1
+        let MSDP_VAL: UInt8 = 2
+        var bytes: [UInt8] = [255, 250, 69] // IAC SB MSDP
+        bytes.append(MSDP_VAR)
+        bytes.append(contentsOf: "SEND".utf8)
+        bytes.append(MSDP_VAL)
+        let joined = variables.joined(separator: " ")
+        bytes.append(contentsOf: joined.utf8)
+        bytes.append(contentsOf: [255, 240]) // IAC SE
+        send(Data(bytes))
+        print("[MSDP] -> SEND \(joined)")
+    }
+
     /// Subscribe to HP/Mana vitals via MSDP using per-world overrides or defaults
     private func autoSubscribeMSDPVitals() {
         guard msdpEnabled, NetworkingPreferences.msdpEnabled else { return }
@@ -200,6 +216,8 @@ class MUDSocket: NSObject {
         var seen = Set<String>()
         let ordered = keys.filter { seen.insert($0.uppercased()).inserted }
         sendMSDPReport(variables: ordered)
+        // Also request an immediate one-shot read
+        sendMSDPSend(variables: ordered)
     }
 
     // MARK: - Connection Management
@@ -1243,6 +1261,12 @@ class MUDSocket: NSObject {
             sendXterm256Colors()
             // Send GMCP hello if enabled (server may also drive this)
             if gmcpEnabled { sendGMCPHello() }
+            // Ensure MSDP vitals subscriptions fire even if server DOES MSDP before we replied
+            if msdpEnabled && NetworkingPreferences.msdpEnabled {
+                autoSubscribeMSDPVitals()
+                // Proactively request current values so starting below max is reflected immediately
+                sendMSDPSend(variables: ["HEALTH", "HEALTH_MAX", "HP", "HP_MAX", "MANA", "MANA_MAX", "MN", "MN_MAX"]) 
+            }
             DispatchQueue.main.async {
                 self.delegate?.mudSocket(self, didConnectToHost: self.connectedHost ?? "", port: self.connectedPort)
             }
@@ -1724,6 +1748,9 @@ class MUDSocket: NSObject {
         if NetworkingPreferences.gmcpEnabled { send(Data([IAC, WILL, GMCP])) }
         if NetworkingPreferences.msdpEnabled { send(Data([IAC, WILL, MSDP])) }
         if NetworkingPreferences.mccpEnabled { send(Data([IAC, DO, COMPRESS2])) }
+        // Also immediately DO GMCP/MSDP if the server already WILLed before we sent WILL
+        if NetworkingPreferences.gmcpEnabled { send(Data([IAC, DO, GMCP])) }
+        if NetworkingPreferences.msdpEnabled { send(Data([IAC, DO, MSDP])) }
     }
 
     private func sendGMCP(_ payload: String) {

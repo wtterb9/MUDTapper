@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        1A2B3C4D5E6F708090A0B0C0 /* SessionVitalsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F1E2D3C4B5A697887766554 /* SessionVitalsStore.swift */; };
 		0A2E3D1D7817FDFC95550806 /* ThemeSettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF997AA3624C15E5AE4B9AB2 /* ThemeSettingsViewController.swift */; };
 		0B914DBC526C0929883FFAB7 /* ANSIProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 662BE16596DDC3A6772B38ED /* ANSIProcessorTests.swift */; };
 		0E8D95DC952C8A92A3CF4757 /* MUDTapper.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 38E2007CBADA8A0B272E3570 /* MUDTapper.xcdatamodeld */; };
@@ -58,6 +59,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+        0F1E2D3C4B5A697887766554 /* SessionVitalsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionVitalsStore.swift; sourceTree = "<group>"; };
 		03BFF6C83A25A27685814871 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		04CBFE0E9639B868E0E679DE /* InputSettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputSettingsViewController.swift; sourceTree = "<group>"; };
 		04F852AEB2F93EAB7BF3927D /* EnhancedWorldManagementViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnhancedWorldManagementViewController.swift; sourceTree = "<group>"; };
@@ -156,7 +158,8 @@
 				48E7182CE92C217545AE0619 /* SilentAudioManager.swift */,
 				0B3D1160D5249EE7267D9F6D /* ThemeManager.swift */,
 				A24CD49C09E5D2BE6F7E8831 /* Ticker.swift */,
-				7CCC92BBDB0A6AEDE7690CFC /* Trigger.swift */,
+                7CCC92BBDB0A6AEDE7690CFC /* Trigger.swift */,
+                0F1E2D3C4B5A697887766554 /* SessionVitalsStore.swift */,
 				DFAD62E2FEDE014794189C7B /* World.swift */,
 			);
 			path = Models;
@@ -337,6 +340,7 @@
 				CE39F794FA97AA56B68EC16A /* SettingsViewController.swift in Sources */,
 				7B6C02329E1B65AD9571E5B3 /* SilentAudioManager.swift in Sources */,
 				9B878CB8B7565C640A5C17F7 /* ThemeManager.swift in Sources */,
+                1A2B3C4D5E6F708090A0B0C0 /* SessionVitalsStore.swift in Sources */,
 				0A2E3D1D7817FDFC95550806 /* ThemeSettingsViewController.swift in Sources */,
 				D9C194D1B4A483F1D1848C45 /* Ticker.swift in Sources */,
 				F21203635E7C44025B82BF78 /* Trigger.swift in Sources */,

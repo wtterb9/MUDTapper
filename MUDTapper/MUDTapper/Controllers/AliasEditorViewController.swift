@@ -43,6 +43,8 @@ class AliasEditorViewController: UIViewController {
         nameField.borderStyle = .roundedRect
         nameField.autocapitalizationType = .none
         nameField.autocorrectionType = .no
+        nameField.textColor = ThemeManager.shared.terminalTextColor
+        nameField.keyboardAppearance = ThemeManager.shared.isDarkTheme ? .dark : .light
 
         let commandsLabel = UILabel()
         commandsLabel.text = "Commands (one per line)"
@@ -52,7 +54,9 @@ class AliasEditorViewController: UIViewController {
         commandsView.layer.borderWidth = 1
         commandsView.layer.borderColor = UIColor.systemGray4.cgColor
         commandsView.layer.cornerRadius = 8
-        commandsView.backgroundColor = UIColor.systemBackground
+        commandsView.backgroundColor = ThemeManager.shared.terminalBackgroundColor
+        commandsView.textColor = ThemeManager.shared.terminalTextColor
+        commandsView.keyboardAppearance = ThemeManager.shared.isDarkTheme ? .dark : .light
         commandsView.heightAnchor.constraint(equalToConstant: 220).isActive = true
 
         stack.addArrangedSubview(nameField)

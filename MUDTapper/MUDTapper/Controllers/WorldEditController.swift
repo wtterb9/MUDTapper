@@ -228,94 +228,27 @@ class WorldEditController: UIViewController {
     // MARK: - Alias Management
     
     private func createNewAlias() {
-        let alert = UIAlertController(title: "New Alias", message: "Create a new command alias", preferredStyle: .alert)
-        
-        alert.addTextField { textField in
-            textField.placeholder = "Alias name (e.g., 'k')"
-            textField.autocapitalizationType = .none
-            textField.autocorrectionType = .no
+        let editor = AliasEditorViewController(world: world)
+        editor.onDismiss = { [weak self] in self?.tableView.reloadData() }
+        let nav = UINavigationController(rootViewController: editor)
+        nav.modalPresentationStyle = .pageSheet
+        if #available(iOS 15.0, *), let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
         }
-        
-        alert.addTextField { textField in
-            textField.placeholder = "Commands (e.g., 'kill $1$')"
-            textField.autocapitalizationType = .none
-            textField.autocorrectionType = .no
-        }
-        
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Create", style: .default) { [weak self] _ in
-            guard let self = self,
-                  let name = alert.textFields?[0].text, !name.isEmpty,
-                  let commands = alert.textFields?[1].text, !commands.isEmpty else {
-                return
-            }
-            
-            let context = self.world.managedObjectContext!
-            let alias = Alias(context: context)
-            alias.name = name
-            alias.commands = commands
-            alias.world = self.world
-            alias.isHidden = false
-            alias.lastModified = Date()
-            
-            do {
-                try context.save()
-                self.tableView.reloadData()
-            } catch {
-                self.showAlert(title: "Error", message: "Failed to create alias: \(error.localizedDescription)")
-            }
-        })
-        
-        present(alert, animated: true)
+        present(nav, animated: true)
     }
     
     private func editAlias(_ alias: Alias) {
-        let alert = UIAlertController(title: "Edit Alias", message: "Modify the alias", preferredStyle: .alert)
-        
-        alert.addTextField { textField in
-            textField.placeholder = "Alias name"
-            textField.text = alias.name
-            textField.autocapitalizationType = .none
-            textField.autocorrectionType = .no
+        let editor = AliasEditorViewController(world: world, alias: alias)
+        editor.onDismiss = { [weak self] in self?.tableView.reloadData() }
+        let nav = UINavigationController(rootViewController: editor)
+        nav.modalPresentationStyle = .pageSheet
+        if #available(iOS 15.0, *), let sheet = nav.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
         }
-        
-        alert.addTextField { textField in
-            textField.placeholder = "Commands"
-            textField.text = alias.commands
-            textField.autocapitalizationType = .none
-            textField.autocorrectionType = .no
-        }
-        
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Save", style: .default) { [weak self] _ in
-            guard let name = alert.textFields?[0].text, !name.isEmpty,
-                  let commands = alert.textFields?[1].text, !commands.isEmpty else {
-                return
-            }
-            
-            alias.name = name
-            alias.commands = commands
-            alias.lastModified = Date()
-            
-            do {
-                try alias.managedObjectContext?.save()
-                self?.tableView.reloadData()
-            } catch {
-                self?.showAlert(title: "Error", message: "Failed to save alias: \(error.localizedDescription)")
-            }
-        })
-        
-        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
-            alias.managedObjectContext?.delete(alias)
-            do {
-                try alias.managedObjectContext?.save()
-                self?.tableView.reloadData()
-            } catch {
-                self?.showAlert(title: "Error", message: "Failed to delete alias: \(error.localizedDescription)")
-            }
-        })
-        
-        present(alert, animated: true)
+        present(nav, animated: true)
     }
     
     // MARK: - Trigger Management

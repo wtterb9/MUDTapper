@@ -107,7 +107,7 @@ class InputSettingsViewController: SettingsViewController {
 
     private func createRadialControlsSection() -> SettingsSection {
         let currentStyle = RadialControl.radialControlStyle()
-        let items: [SettingsItem] = [
+        var items: [SettingsItem] = [
             NavigationSettingsItem(
                 title: "Left Radial Position",
                 accessibilityHint: "Choose position for left radial controls"
@@ -137,12 +137,99 @@ class InputSettingsViewController: SettingsViewController {
                 defaultValue: false
             )
         ]
+
+        // Always expose command customization here (no dependency on client context)
+        items.append(NavigationSettingsItem(
+            title: "Customize Left Radial Commands",
+            accessibilityHint: "Set commands for each left radial direction"
+        ) { [weak self] in
+            self?.showRadialCommandCustomization(for: 0)
+            return UIViewController()
+        })
+        items.append(NavigationSettingsItem(
+            title: "Customize Right Radial Commands",
+            accessibilityHint: "Set commands for each right radial direction"
+        ) { [weak self] in
+            self?.showRadialCommandCustomization(for: 1)
+            return UIViewController()
+        })
+        items.append(ActionSettingsItem(
+            title: "Reset All Radial Commands",
+            accessibilityLabel: "Reset All Radial Commands",
+            accessibilityHint: "Restore default commands for both radials",
+            style: .destructive
+        ) { [weak self] in
+            self?.resetAllRadialCommands()
+        })
         
         return SettingsSection(
             title: "Radial Controls",
-            footer: "Customize radial button positions, style, and labels",
+            footer: "Customize radial positions, style, labels, and per-direction commands",
             items: items
         )
+    }
+
+    // MARK: - Radial Commands (local implementation)
+
+    private func showRadialCommandCustomization(for buttonIndex: Int) {
+        let buttonName = buttonIndex == 0 ? "Left" : "Right"
+        let alert = UIAlertController(title: "\u{1F3AE} \(buttonName) Radial Commands", message: "Customize commands for each direction", preferredStyle: .actionSheet)
+
+        for direction in RadialDirection.allCases {
+            let key = "RadialButton\(buttonIndex)_\(direction.rawValue)"
+            let currentCommand = UserDefaults.standard.string(forKey: key) ?? direction.defaultCommand
+            let title = "\(direction.rawValue.capitalized): \(currentCommand)"
+            alert.addAction(UIAlertAction(title: title, style: .default) { [weak self] _ in
+                self?.editRadialCommand(for: buttonIndex, direction: direction)
+            })
+        }
+
+        alert.addAction(UIAlertAction(title: "\u{1F501} Reset to Defaults", style: .destructive) { [weak self] _ in
+            self?.resetRadialButton(buttonIndex)
+        })
+
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        present(alert, animated: true)
+    }
+
+    private func editRadialCommand(for buttonIndex: Int, direction: RadialDirection) {
+        let key = "RadialButton\(buttonIndex)_\(direction.rawValue)"
+        let currentCommand = UserDefaults.standard.string(forKey: key) ?? direction.defaultCommand
+        let buttonName = buttonIndex == 0 ? "Left" : "Right"
+
+        let alert = UIAlertController(title: "✏️ Edit \(direction.rawValue.capitalized) Command", message: "\(buttonName) Radial\nCurrent: \(currentCommand)", preferredStyle: .alert)
+        alert.addTextField { tf in
+            tf.placeholder = "Enter command"
+            tf.text = currentCommand
+            tf.autocapitalizationType = .none
+            tf.autocorrectionType = .no
+        }
+        alert.addAction(UIAlertAction(title: "Save", style: .default) { _ in
+            let newText = alert.textFields?.first?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            if newText.isEmpty {
+                UserDefaults.standard.removeObject(forKey: key)
+            } else {
+                UserDefaults.standard.set(newText, forKey: key)
+            }
+        })
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        present(alert, animated: true)
+    }
+
+    private func resetRadialButton(_ buttonIndex: Int) {
+        for direction in RadialDirection.allCases {
+            let key = "RadialButton\(buttonIndex)_\(direction.rawValue)"
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+    }
+
+    private func resetAllRadialCommands() {
+        let alert = UIAlertController(title: "Reset Radial Commands", message: "This will reset all radial button commands to defaults.", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Reset", style: .destructive) { _ in
+            for buttonIndex in 0..<2 { self.resetRadialButton(buttonIndex) }
+        })
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        present(alert, animated: true)
     }
 
     // MARK: - Radial Controls Helpers (modal presenters)

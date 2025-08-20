@@ -267,16 +267,14 @@ class ThemeManager {
     
     func availableFonts() -> [String] {
         // Return list of monospace fonts suitable for terminal display
+        // Prefer built-in system monospace fonts to avoid missing bundled files
         return [
-            "Courier",
-            "Courier New",
             "Menlo",
+            "Courier New",
+            "Courier",
             "Monaco",
-            "Consolas",
-            "Source Code Pro",
-            "Fira Mono",
-            "Inconsolata",
-            "Anonymous Pro"
+            "SF Mono",
+            "American Typewriter"
         ].filter { UIFont(name: $0, size: 12) != nil }
     }
     

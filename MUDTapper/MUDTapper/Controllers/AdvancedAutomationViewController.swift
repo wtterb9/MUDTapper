@@ -897,6 +897,7 @@ class MultilineTextEditorViewController: UIViewController {
     private let hintText: String?
     private let onSave: (String) -> Void
     private let textView = UITextView()
+    private var extraRightBarButtons: [UIBarButtonItem] = []
     
     func appendText(_ snippet: String) {
         let existing = textView.text ?? ""
@@ -922,7 +923,10 @@ class MultilineTextEditorViewController: UIViewController {
         super.viewDidLoad()
         view.backgroundColor = ThemeManager.shared.terminalBackgroundColor
         navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancelTapped))
-        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .save, target: self, action: #selector(saveTapped))
+        let saveItem = UIBarButtonItem(barButtonSystemItem: .save, target: self, action: #selector(saveTapped))
+        var rightItems: [UIBarButtonItem] = [saveItem]
+        if !extraRightBarButtons.isEmpty { rightItems.append(contentsOf: extraRightBarButtons) }
+        navigationItem.rightBarButtonItems = rightItems
 
         let stack = UIStackView()
         stack.axis = .vertical
@@ -962,6 +966,18 @@ class MultilineTextEditorViewController: UIViewController {
     @objc private func saveTapped() {
         onSave(textView.text ?? "")
         navigationController?.popViewController(animated: true)
+    }
+
+    // Allow callers to append additional right bar buttons (e.g., Examples) before presentation
+    func setExtraRightBarButtons(_ buttons: [UIBarButtonItem]) {
+        extraRightBarButtons = buttons
+        // If the view is already loaded, refresh the nav items now
+        if isViewLoaded {
+            let saveItem = UIBarButtonItem(barButtonSystemItem: .save, target: self, action: #selector(saveTapped))
+            var rightItems: [UIBarButtonItem] = [saveItem]
+            rightItems.append(contentsOf: buttons)
+            navigationItem.rightBarButtonItems = rightItems
+        }
     }
 }
 
@@ -1404,7 +1420,8 @@ extension AutomationEditorViewController: UITableViewDataSource, UITableViewDele
                 case 2:
                     cell.textLabel?.text = "Commands"
                     cell.detailTextLabel?.text = formData["action"] as? String ?? ""
-                    cell.accessoryType = .disclosureIndicator
+                    // Don't show disclosure indicator when using a custom accessory stack to avoid layout conflicts in compact widths
+                    cell.accessoryType = .none
                     cell.accessoryView = makeHelpAccessory()
                 case 3:
                     cell.textLabel?.text = "Enabled"
@@ -1423,7 +1440,7 @@ extension AutomationEditorViewController: UITableViewDataSource, UITableViewDele
                 case 1:
                     cell.textLabel?.text = "Commands"
                     cell.detailTextLabel?.text = formData["action"] as? String ?? ""
-                    cell.accessoryType = .disclosureIndicator
+                    cell.accessoryType = .none
                     cell.accessoryView = makeHelpAccessory()
                 case 2:
                     cell.textLabel?.text = "Enabled"
@@ -1698,7 +1715,7 @@ extension AutomationEditorViewController: UITableViewDataSource, UITableViewDele
         // Add common examples toolbar for quick insert/copy
         let examplesButton = UIBarButtonItem(title: "Examples", style: .plain, target: self, action: #selector(showExamplesTapped))
         examplesButton.accessibilityHint = "Insert example snippets"
-        editor.navigationItem.rightBarButtonItems = [editor.navigationItem.rightBarButtonItem!, examplesButton]
+        editor.setExtraRightBarButtons([examplesButton])
         editor.navigationItem.leftBarButtonItem?.accessibilityHint = "Cancel editing"
         navigationController?.pushViewController(editor, animated: true)
     }

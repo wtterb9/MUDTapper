@@ -265,9 +265,13 @@ class ClientContainer: UIViewController {
     @objc private func vitalsDidUpdate(_ note: Notification) {
         guard let worldID = note.object as? NSManagedObjectID else { return }
         guard let tabItem = tabBarItems[worldID], let base = tabBaseImages[worldID] else { return }
-        if worldID != currentClientViewController?.worldID,
-           let vitals = SessionVitalsStore.shared.vitals(for: worldID) {
-            tabItem.image = renderVitalsIcon(base: base, vitals: vitals)
+        if let vitals = SessionVitalsStore.shared.vitals(for: worldID) {
+            let overlay = renderVitalsIcon(base: base, vitals: vitals)
+            tabItem.image = overlay
+            tabItem.selectedImage = overlay
+        } else {
+            tabItem.image = base
+            tabItem.selectedImage = base
         }
     }
     
@@ -328,18 +332,18 @@ class ClientContainer: UIViewController {
     }
     
     private func addTabForWorld(_ world: World, worldID: NSManagedObjectID) {
-        // Create smaller icon (75% of original size)
-        let originalImage = UIImage(systemName: "globe")
-        let resizedImage = originalImage?.resized(to: CGSize(width: 22, height: 22))
+        // Use a clean, transparent base so vitals rings are not obstructed by any symbol
+        let baseIcon = makeBaseTabImage(size: CGSize(width: 26, height: 26))
         
         let tabItem = UITabBarItem(
             title: world.name ?? "Unknown",
-            image: resizedImage,
+            image: baseIcon,
             tag: worldID.hashValue
         )
+        tabItem.selectedImage = baseIcon
         
         tabBarItems[worldID] = tabItem
-        if let base = resizedImage { tabBaseImages[worldID] = base }
+        tabBaseImages[worldID] = baseIcon
         tabOrder.append(worldID)
         updateTabBarItems()
     }
@@ -363,58 +367,88 @@ class ClientContainer: UIViewController {
         
         tabBar.items = items
 
-        // Re-apply vitals overlay icons for inactive sessions
+        // Re-apply vitals overlay icons for all sessions
         refreshAllTabIcons()
     }
 
     private func refreshAllTabIcons() {
         for (worldID, tabItem) in tabBarItems {
             guard let base = tabBaseImages[worldID] else { continue }
-            let isActive = (worldID == currentClientViewController?.worldID)
-            if !isActive {
-                if let vitals = SessionVitalsStore.shared.vitals(for: worldID) {
-                    tabItem.image = renderVitalsIcon(base: base, vitals: vitals)
-                } else {
-                    tabItem.image = base
-                }
+            if let vitals = SessionVitalsStore.shared.vitals(for: worldID) {
+                let overlay = renderVitalsIcon(base: base, vitals: vitals)
+                tabItem.image = overlay
+                tabItem.selectedImage = overlay
             } else {
                 tabItem.image = base
+                tabItem.selectedImage = base
             }
         }
     }
 
     private func renderVitalsIcon(base: UIImage, vitals: SessionVitalsStore.Vitals) -> UIImage {
         let size = base.size
-        let renderer = UIGraphicsImageRenderer(size: size)
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 0
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
         let img = renderer.image { ctx in
             base.draw(in: CGRect(origin: .zero, size: size))
             let center = CGPoint(x: size.width/2, y: size.height/2)
-            let radius = min(size.width, size.height)/2 - 1
+            // Use thicker rings and keep strokes fully inside bounds
+            let ringWidth: CGFloat = 3.0
+            let halfW = ringWidth / 2
+            let edgeInset: CGFloat = 0.5
+            let maxRadius = min(size.width, size.height)/2 - edgeInset
+            let outerRadius = maxRadius - halfW
+            let innerRadius = outerRadius - ringWidth - 2.0 // 2pt gap between rings
 
-            // Colors
-            let trackColor = ThemeManager.shared.linkColor.withAlphaComponent(0.25)
+            // Colors / state
             let isStale = Date().timeIntervalSince(vitals.updatedAt) > 10
-            func colorForPercent(_ p: Double) -> UIColor {
+            // Higher-contrast track to be visible on both light/dark themes
+            // Use high-contrast track with subtle outer glow to ensure visibility
+            let trackColor = ThemeManager.shared.isDarkTheme
+                ? UIColor.white.withAlphaComponent(0.28)
+                : UIColor.black.withAlphaComponent(0.34)
+            func hpColor(for p: Double) -> UIColor {
                 let hpGreen = Double((UserDefaults.standard.string(forKey: "Vitals.HP.GreenThresholdPercent")?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap(Int.init) ?? 60) / 100.0
                 let hpYellow = Double((UserDefaults.standard.string(forKey: "Vitals.HP.YellowThresholdPercent")?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap(Int.init) ?? 30) / 100.0
                 if p >= hpGreen { return .systemGreen }
                 if p >= hpYellow { return .systemYellow }
                 return .systemRed
             }
-            let lineWidth: CGFloat = 2
-            ctx.cgContext.setLineWidth(lineWidth)
+
+            // Outer HP ring
+            ctx.cgContext.setLineWidth(ringWidth)
             ctx.cgContext.setLineCap(.round)
+            // Outer faint halo
+            ctx.cgContext.saveGState()
+            ctx.cgContext.setShadow(offset: .zero, blur: 1.2, color: trackColor.withAlphaComponent(0.6).cgColor)
             // Track
             ctx.cgContext.setStrokeColor(trackColor.cgColor)
-            ctx.cgContext.addArc(center: center, radius: radius, startAngle: -.pi/2, endAngle: 1.5 * .pi, clockwise: false)
+            ctx.cgContext.addArc(center: center, radius: outerRadius, startAngle: -.pi/2, endAngle: 1.5 * .pi, clockwise: false)
             ctx.cgContext.strokePath()
-            // Progress
+            ctx.cgContext.restoreGState()
+            // Progress (HP)
+            if let hpP = vitals.hpPercent {
+                let end = (-.pi/2) + (2 * .pi * CGFloat(max(0,min(1,hpP))))
+                let ringColor = hpColor(for: hpP)
+                let stroke = isStale ? ringColor.withAlphaComponent(0.4) : ringColor
+                ctx.cgContext.setStrokeColor(stroke.cgColor)
+                ctx.cgContext.addArc(center: center, radius: outerRadius, startAngle: -.pi/2, endAngle: end, clockwise: false)
+                ctx.cgContext.strokePath()
+            }
+
+            // Inner Mana ring
+            ctx.cgContext.setStrokeColor(trackColor.cgColor)
+            ctx.cgContext.setLineWidth(ringWidth)
+            ctx.cgContext.addArc(center: center, radius: innerRadius, startAngle: -.pi/2, endAngle: 1.5 * .pi, clockwise: false)
+            ctx.cgContext.strokePath()
+            // Progress (Mana)
             if let p = vitals.manaPercent {
                 let end = (-.pi/2) + (2 * .pi * CGFloat(max(0,min(1,p))))
                 let mnGreenOpt = UserDefaults.standard.string(forKey: "Vitals.Mana.GreenThresholdPercent")?.trimmingCharacters(in: .whitespacesAndNewlines)
                 let mnYellowOpt = UserDefaults.standard.string(forKey: "Vitals.Mana.YellowThresholdPercent")?.trimmingCharacters(in: .whitespacesAndNewlines)
                 let hasMnThresholds = (Int(mnGreenOpt ?? "") != nil) && (Int(mnYellowOpt ?? "") != nil)
-                let base: UIColor = {
+                let baseColor: UIColor = {
                     guard hasMnThresholds else { return .systemBlue }
                     let green = Double(Int(mnGreenOpt!) ?? 60) / 100.0
                     let yellow = Double(Int(mnYellowOpt!) ?? 30) / 100.0
@@ -422,98 +456,85 @@ class ClientContainer: UIViewController {
                     if p >= yellow { return .systemYellow }
                     return .systemRed
                 }()
-                let stroke = isStale ? base.withAlphaComponent(0.4) : base
+                let stroke = isStale ? baseColor.withAlphaComponent(0.4) : baseColor
                 ctx.cgContext.setStrokeColor(stroke.cgColor)
-                ctx.cgContext.addArc(center: center, radius: radius, startAngle: -.pi/2, endAngle: end, clockwise: false)
+                ctx.cgContext.addArc(center: center, radius: innerRadius, startAngle: -.pi/2, endAngle: end, clockwise: false)
                 ctx.cgContext.strokePath()
-            }
-
-            // HP inner disk with vertical fill
-            let diskInset: CGFloat = 6
-            let diskRect = CGRect(x: diskInset, y: diskInset, width: size.width - 2*diskInset, height: size.height - 2*diskInset)
-            let diskPath = UIBezierPath(ovalIn: diskRect)
-            // Disk border
-            UIColor.black.withAlphaComponent(0.3).setStroke()
-            diskPath.lineWidth = 1
-            diskPath.stroke()
-            // Disk track
-            ThemeManager.shared.terminalTextColor.withAlphaComponent(0.15).setFill()
-            diskPath.fill()
-            if let hpP = vitals.hpPercent {
-                // Clip to disk and draw red fill up to vertical percent
-                ctx.cgContext.saveGState()
-                ctx.cgContext.addEllipse(in: diskRect)
-                ctx.cgContext.clip()
-                let clamped = CGFloat(max(0, min(1, hpP)))
-                let fillHeight = diskRect.height * clamped
-                let fillRect = CGRect(x: diskRect.minX, y: diskRect.maxY - fillHeight, width: diskRect.width, height: fillHeight)
-                let hpColor = colorForPercent(Double(hpP))
-                let fillColor = isStale ? hpColor.withAlphaComponent(0.4) : hpColor
-                fillColor.setFill()
-                ctx.cgContext.fill(fillRect)
-                ctx.cgContext.restoreGState()
             }
         }
         return img.withRenderingMode(.alwaysOriginal)
+    }
+
+    // Create a transparent base image with slight border for contrast
+    private func makeBaseTabImage(size: CGSize) -> UIImage {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 0
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
+        return renderer.image { ctx in
+            let rect = CGRect(origin: .zero, size: size)
+            // Clear background
+            UIColor.clear.setFill()
+            ctx.fill(rect)
+            // Optional subtle outline to help rings stand on any theme
+            let outlineRect = rect.insetBy(dx: 1, dy: 1)
+            let path = UIBezierPath(ovalIn: outlineRect)
+            ThemeManager.shared.terminalTextColor.withAlphaComponent(0.12).setStroke()
+            path.lineWidth = 1
+            path.stroke()
+        }.withRenderingMode(.alwaysOriginal)
     }
     
     private func switchToClient(_ client: ClientViewController, worldID: NSManagedObjectID) {
         // Capture whether keyboard is currently shown for the active session
         let shouldKeepKeyboardFocused = currentClientViewController?.isInputFocused() ?? false
 
-        // Ensure the previous client's alpha is restored
-        currentClientViewController?.view.alpha = 1.0
-        
-        // Remove current client view if any
-        currentClientViewController?.view.removeFromSuperview()
-        currentClientViewController?.removeFromParent()
-        
-        // Remove any welcome label
-        view.subviews.forEach { subview in
-            if subview.tag == 999 {
-                subview.removeFromSuperview()
-            }
-        }
-        
-        // Add new client
+        // Add the new client FIRST so we can transfer first responder without dismissing the keyboard
         addChild(client)
         view.addSubview(client.view)
-        
+
         // Set up constraints
         client.view.translatesAutoresizingMaskIntoConstraints = false
         clientViewBottomConstraint = client.view.bottomAnchor.constraint(equalTo: tabBar.topAnchor)
-        
+
         NSLayoutConstraint.activate([
             client.view.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             client.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             client.view.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             clientViewBottomConstraint!
         ])
-        
+
         client.didMove(toParent: self)
-        
-        // Ensure the new client's alpha is set to full opacity
         client.view.alpha = 1.0
-        
+
+        // If input was focused, immediately make the new input first responder BEFORE removing the old view
+        if shouldKeepKeyboardFocused {
+            client.focusInput()
+        }
+
+        // Now safely remove the previous client so the keyboard never dismisses between views
+        if let previous = currentClientViewController {
+            previous.view.alpha = 1.0
+            previous.view.removeFromSuperview()
+            previous.removeFromParent()
+        }
+
+        // Remove any welcome label
+        view.subviews.forEach { subview in
+            if subview.tag == 999 { subview.removeFromSuperview() }
+        }
+
         currentClientViewController = client
-        
+
         // Update navigation bar with close button
         setupNavigationBarForWorld()
-        
+
         // Update tab selection
         if let tabItem = tabBarItems[worldID] {
             tabBar.selectedItem = tabItem
         }
-        
-        print("ClientContainer: Switched to client for world: \(worldID)")
 
-        // If the input was focused before switching, restore focus so the keyboard persists
-        if shouldKeepKeyboardFocused {
-            // Delay to ensure view hierarchy/layout is ready before becoming first responder
-            DispatchQueue.main.async { [weak client] in
-                client?.focusInput()
-            }
-        }
+        // Update vitals overlays for all tabs now that active tab changed
+        refreshAllTabIcons()
     }
     
     private func setupNavigationBarForWorld() {
@@ -738,11 +759,9 @@ class ClientContainer: UIViewController {
         // Update title with status indicators
         tabItem.title = formatTabTitle(worldName: worldName, status: status)
         
-        // Update icon based on status
-        let iconName = getTabIcon(for: status)
-        let originalImage = UIImage(systemName: iconName)
-        let resizedImage = originalImage?.resized(to: CGSize(width: 22, height: 22))
-        tabItem.image = resizedImage
+        // Do not change the tab icon; keep a clean base so vitals rings are unobstructed
+        // Re-apply overlays after any title/status change
+        refreshAllTabIcons()
         
         // Update badge if needed
         updateTabBadge(tabItem: tabItem, status: status)

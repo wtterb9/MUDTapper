@@ -310,6 +310,8 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
             if hpPct != nil || manaPct != nil {
                 let label = UILabel()
                 label.font = UIFont.monospacedDigitSystemFont(ofSize: 13, weight: .semibold)
+                label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+                label.setContentHuggingPriority(.defaultLow, for: .horizontal)
                 func colorForHP(_ p: Double?) -> UIColor {
                     guard let p = p else { return .secondaryLabel }
                     let green = Double((UserDefaults.standard.string(forKey: "Vitals.HP.GreenThresholdPercent")?.trimmingCharacters(in: .whitespacesAndNewlines)).flatMap(Int.init) ?? 60) / 100.0
@@ -342,7 +344,6 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
                 combined.append(NSAttributedString(string: "  MN "))
                 combined.append(NSAttributedString(string: mnText, attributes: [.foregroundColor: mnColor]))
                 label.attributedText = combined
-                label.text = "HP \(hpText)%  MN \(mnText)%"
                 vitalsItem = UIBarButtonItem(customView: label)
             }
         }
@@ -605,6 +606,10 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
         updateTriggerNotificationObserver()
         
         showMudView()
+        // Ensure socket knows which world to attribute MSDP/GMCP vitals to
+        if let world = currentWorld {
+            mudSocket?.currentWorldObjectID = world.objectID
+        }
         updateUI()
     }
     
@@ -967,7 +972,7 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
     // MARK: - Modern Settings (Phase 2 Integration)
     
     private func showModernInputSettings() {
-        let inputSettings = InputSettingsViewController()
+        let inputSettings = InputSettingsViewController(clientViewController: self)
         inputSettings.title = "Input Settings"
         inputSettings.onDismiss = { [weak self] in
             self?.refreshCurrentPersistentMenu()
@@ -2741,6 +2746,8 @@ extension ClientViewController: MUDSocketDelegate {
                 var finalText = attributedText
                 if let world = self.currentWorld {
                     let plainText = attributedText.string
+                    // Fallback vitals scan from inline status lines (for servers without MSDP/GMCP)
+                    self.scanForInlineVitals(in: plainText)
                     if !world.shouldGagText(plainText) {
                         finalText = attributedText
                     } else {
@@ -2753,6 +2760,49 @@ extension ClientViewController: MUDSocketDelegate {
                 
                 // Notify delegate
                 self.delegate?.clientDidReceiveText(self)
+            }
+        }
+    }
+
+    // MARK: - Inline Vitals Fallback (non-OOB)
+    private func scanForInlineVitals(in text: String) {
+        guard let worldID = worldObjectID else { return }
+        // Quick patterns:
+        // 1) "< 43985H 9413M 8963V" style
+        // 2) "HP: 123/456  Mana: 789/1011" style (case-insensitive)
+        let lines = text.split(separator: "\n")
+        for rawLine in lines {
+            let line = String(rawLine)
+            // Pattern 1
+            if let match = line.range(of: #"\<\s*(\d+)H\s+(\d+)M(?:\s+(\d+)V)?"#, options: .regularExpression) {
+                let substr = String(line[match])
+                let nums = substr.replacingOccurrences(of: "<", with: "").split(whereSeparator: { !$0.isNumber })
+                if nums.count >= 2, let hp = Int(nums[0]), let mn = Int(nums[1]) {
+                    var vars: [String: String] = ["HP": String(hp), "MANA": String(mn)]
+                    SessionVitalsStore.shared.update(worldID: worldID, with: vars)
+                    continue
+                }
+            }
+            // Pattern 2
+            if let regex = try? NSRegularExpression(pattern: #"(?i)HP\s*:?\s*(\d+)(?:/(\d+))?.*?M(?:ANA|N)?\s*:?\s*(\d+)(?:/(\d+))?"#, options: []) {
+                let range = NSRange(location: 0, length: line.utf16.count)
+                if let m = regex.firstMatch(in: line, options: [], range: range) {
+                    func group(_ idx: Int) -> Int? {
+                        let r = m.range(at: idx)
+                        if r.location != NSNotFound, let swiftRange = Range(r, in: line) { return Int(line[swiftRange]) }
+                        return nil
+                    }
+                    let hp = group(1)
+                    let hpMax = group(2)
+                    let mn = group(3)
+                    let mnMax = group(4)
+                    var vars: [String: String] = [:]
+                    if let hp { vars["HP"] = String(hp) }
+                    if let hpMax { vars["HP_MAX"] = String(hpMax) }
+                    if let mn { vars["MANA"] = String(mn) }
+                    if let mnMax { vars["MANA_MAX"] = String(mnMax) }
+                    if !vars.isEmpty { SessionVitalsStore.shared.update(worldID: worldID, with: vars) }
+                }
             }
         }
     }
@@ -3968,7 +4018,7 @@ extension ClientViewController {
         resetAllRadialControls()
     }
     
-    private func resetAllRadialControls() {
+    func resetAllRadialControls() {
         let alert = UIAlertController(title: "Reset Radial Controls", message: "This will reset all radial button commands to defaults. Continue?", preferredStyle: .alert)
         
         alert.addAction(UIAlertAction(title: "Reset", style: .destructive) { [weak self] _ in
@@ -3993,7 +4043,7 @@ extension ClientViewController {
         presentModalThenReturnToPersistent(alert)
     }
     
-    private func showPersistentRadialControlMenu() {
+    func showPersistentRadialControlMenu() {
         let alert = UIAlertController(title: "🎮 Radial Controls", message: "Customize radial button commands", preferredStyle: .actionSheet)
         
         // Left radial customization
@@ -4037,7 +4087,7 @@ extension ClientViewController {
         showPersistentMenu(alert, type: .radialControls)
     }
     
-    private func showRadialCommandCustomization(for buttonIndex: Int) {
+    func showRadialCommandCustomization(for buttonIndex: Int) {
         let buttonName = buttonIndex == 0 ? "Left" : "Right"
         let alert = UIAlertController(title: "🎮 \(buttonName) Radial Commands", message: "Customize commands for each direction", preferredStyle: .actionSheet)
         
