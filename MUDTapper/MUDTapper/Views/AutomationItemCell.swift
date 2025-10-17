@@ -185,6 +185,9 @@ class AutomationItemCell: UITableViewCell {
         // Type icon
         typeIconImageView.image = UIImage(systemName: item.type.icon)
         
+        // Accessibility
+        setupAccessibility(for: item)
+        
         // Status indicators
         enabledIndicator.backgroundColor = item.isEnabled ? .systemGreen : .systemRed
         activeIndicator.backgroundColor = item.isActive ? .systemOrange : .systemGray4
@@ -306,19 +309,64 @@ class AutomationItemCell: UITableViewCell {
         }
     }
     
+    // MARK: - Accessibility
+    
+    private func setupAccessibility(for item: AdvancedAutomationViewController.AutomationItem) {
+        // Make the entire cell accessible
+        isAccessibilityElement = false
+        containerView.isAccessibilityElement = true
+        
+        // Create comprehensive accessibility label
+        let statusText = item.isEnabled ? "enabled" : "disabled"
+        let activeText = item.isActive ? "active" : "inactive"
+        let countText = item.triggerCount > 0 ? "triggered \(item.triggerCount) times" : "never triggered"
+        
+        containerView.accessibilityLabel = """
+        \(item.type.singularTitle): \(item.name)
+        Pattern: \(item.pattern)
+        Action: \(item.action)
+        Status: \(statusText), \(activeText)
+        \(countText)
+        """
+        
+        containerView.accessibilityHint = "Double tap to view options. Contains quick toggle button."
+        containerView.accessibilityTraits = .button
+        
+        // Quick toggle button accessibility
+        quickToggleButton.isAccessibilityElement = true
+        quickToggleButton.accessibilityLabel = item.isEnabled ? "Disable \(item.type.singularTitle)" : "Enable \(item.type.singularTitle)"
+        quickToggleButton.accessibilityHint = item.isEnabled ? "Disable this automation" : "Enable this automation"
+        quickToggleButton.accessibilityTraits = .button
+        
+        // Status indicators accessibility (for VoiceOver users who navigate elements)
+        enabledIndicator.isAccessibilityElement = true
+        enabledIndicator.accessibilityLabel = "Status: \(item.isEnabled ? "Enabled" : "Disabled")"
+        
+        if !activeIndicator.isHidden {
+            activeIndicator.isAccessibilityElement = true
+            activeIndicator.accessibilityLabel = "Currently \(item.isActive ? "Active" : "Inactive")"
+        }
+    }
+    
     // MARK: - Actions
     
     @objc private func quickToggleButtonTapped() {
+        // Provide haptic feedback
+        let generator = UIImpactFeedbackGenerator(style: .medium)
+        generator.impactOccurred()
+        
         // Provide visual feedback
         UIView.animate(withDuration: 0.1, animations: {
             self.quickToggleButton.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
         }) { _ in
-            self.quickToggleButton.transform = .identity
+            UIView.animate(withDuration: 0.1) {
+                self.quickToggleButton.transform = .identity
+            }
         }
         
         // Notify through notification center
         NotificationCenter.default.post(
-            name: Notification.Name("AutomationItemQuickToggleTapped"),
+            name: .automationItemQuickToggleTapped,
             object: self
         )
     }
@@ -424,6 +472,13 @@ class AutomationSummaryCell: UITableViewCell {
         
         recentActivityLabel.text = "\(recentlyUsed)\nRecent"
         recentActivityLabel.textColor = recentlyUsed > 0 ? .systemBlue : .secondaryLabel
+        
+        // Accessibility
+        isAccessibilityElement = true
+        accessibilityLabel = """
+        \(type.title) Overview: \(total) total, \(enabled) enabled, \(active) active, \(recentlyUsed) used in last 24 hours
+        """
+        accessibilityTraits = .staticText
     }
 }
 

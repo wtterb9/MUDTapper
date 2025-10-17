@@ -8,6 +8,8 @@ extension Notification.Name {
     static let triggerSoundRequested = Notification.Name("triggerSoundRequested")
     static let triggerVibrationRequested = Notification.Name("triggerVibrationRequested")
     static let omitLineFromOutput = Notification.Name("OmitLineFromOutput")
+    static let automationItemQuickToggleTapped = Notification.Name("AutomationItemQuickToggleTapped")
+    // Note: worldChanged is defined in AppDelegate.swift to avoid duplication
 }
 
 /// Represents a MUD world/server configuration with associated automation

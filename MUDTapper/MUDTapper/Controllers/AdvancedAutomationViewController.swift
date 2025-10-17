@@ -113,17 +113,22 @@ class AdvancedAutomationViewController: UIViewController {
     }
     
     private func setupNavigationBar() {
-        navigationItem.leftBarButtonItem = UIBarButtonItem(
+        let doneButton = UIBarButtonItem(
             barButtonSystemItem: .done,
             target: self,
             action: #selector(doneButtonTapped)
         )
+        doneButton.accessibilityLabel = "Done"
+        doneButton.accessibilityHint = "Close automation manager"
+        navigationItem.leftBarButtonItem = doneButton
         
         addButton = UIBarButtonItem(
             barButtonSystemItem: .add,
             target: self,
             action: #selector(addButtonTapped)
         )
+        addButton.accessibilityLabel = "Add"
+        addButton.accessibilityHint = "Add new automation item"
         
         let testButton = UIBarButtonItem(
             image: UIImage(systemName: "testtube.2"),
@@ -131,6 +136,8 @@ class AdvancedAutomationViewController: UIViewController {
             target: self,
             action: #selector(testButtonTapped)
         )
+        testButton.accessibilityLabel = "Test"
+        testButton.accessibilityHint = "Test automation patterns"
         
         let organizerButton = UIBarButtonItem(
             image: UIImage(systemName: "folder.badge.gearshape"),
@@ -138,6 +145,8 @@ class AdvancedAutomationViewController: UIViewController {
             target: self,
             action: #selector(organizerButtonTapped)
         )
+        organizerButton.accessibilityLabel = "Organize"
+        organizerButton.accessibilityHint = "Organize and reorder automation items"
         
         let helpButton = UIBarButtonItem(
             image: UIImage(systemName: "questionmark.circle"),
@@ -145,6 +154,9 @@ class AdvancedAutomationViewController: UIViewController {
             target: self,
             action: #selector(helpButtonTapped)
         )
+        helpButton.accessibilityLabel = "Help"
+        helpButton.accessibilityHint = "View automation help and documentation"
+        
         navigationItem.rightBarButtonItems = [addButton, testButton, organizerButton, helpButton]
     }
     
@@ -174,6 +186,10 @@ class AdvancedAutomationViewController: UIViewController {
         ]
         segmentedControl.setTitleTextAttributes(normalAttrs, for: .normal)
         segmentedControl.setTitleTextAttributes(selectedAttrs, for: .selected)
+        
+        // Accessibility
+        segmentedControl.accessibilityLabel = "Automation Type"
+        segmentedControl.accessibilityHint = "Select automation type to view and manage"
         
         view.addSubview(segmentedControl)
     }
@@ -749,9 +765,7 @@ class AdvancedAutomationViewController: UIViewController {
     }
     
     private func showAlert(title: String, message: String) {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
+        ErrorPresenter.showError(title: title, message: message)
     }
 }
 
@@ -779,9 +793,48 @@ extension AdvancedAutomationViewController: UITableViewDataSource {
         } else {
             if filteredItems.isEmpty {
                 let cell = UITableViewCell(style: .default, reuseIdentifier: nil)
-                cell.textLabel?.text = "No \(currentType.title.lowercased())"
-                cell.textLabel?.textColor = .secondaryLabel
                 cell.selectionStyle = .none
+                cell.backgroundColor = .clear
+                
+                // Add empty state view as subview
+                let emptyState: EmptyStateView
+                if isSearching {
+                    emptyState = EmptyStateView.noSearchResults(searchTerm: searchController.searchBar.text ?? "")
+                } else {
+                    switch currentType {
+                    case .triggers:
+                        emptyState = EmptyStateView.noTriggers { [weak self] in
+                            self?.createCustomAutomation()
+                        }
+                    case .aliases:
+                        emptyState = EmptyStateView.noAliases { [weak self] in
+                            self?.createCustomAutomation()
+                        }
+                    case .gags, .tickers:
+                        emptyState = EmptyStateView()
+                        emptyState.configure(
+                            image: currentType.icon,
+                            title: "No \(currentType.title)",
+                            message: "Tap the + button to create your first \(currentType.singularTitle.lowercased()).",
+                            buttonTitle: "Add \(currentType.singularTitle)",
+                            buttonAction: { [weak self] in
+                                self?.createCustomAutomation()
+                            }
+                        )
+                    }
+                }
+                emptyState.applyTheme(ThemeManager.shared)
+                emptyState.translatesAutoresizingMaskIntoConstraints = false
+                cell.contentView.addSubview(emptyState)
+                
+                NSLayoutConstraint.activate([
+                    emptyState.topAnchor.constraint(equalTo: cell.contentView.topAnchor),
+                    emptyState.leadingAnchor.constraint(equalTo: cell.contentView.leadingAnchor),
+                    emptyState.trailingAnchor.constraint(equalTo: cell.contentView.trailingAnchor),
+                    emptyState.bottomAnchor.constraint(equalTo: cell.contentView.bottomAnchor),
+                    emptyState.heightAnchor.constraint(equalToConstant: 300)
+                ])
+                
                 return cell
             } else {
                 let cell = tableView.dequeueReusableCell(withIdentifier: "AutomationItemCell", for: indexPath) as! AutomationItemCell
@@ -1241,8 +1294,15 @@ class AutomationEditorViewController: UIViewController {
     private func setupUI() {
         view.backgroundColor = ThemeManager.shared.terminalBackgroundColor
         
-        navigationItem.leftBarButtonItem = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancelTapped))
-        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .save, target: self, action: #selector(saveTapped))
+        let cancelButton = UIBarButtonItem(barButtonSystemItem: .cancel, target: self, action: #selector(cancelTapped))
+        cancelButton.accessibilityLabel = "Cancel"
+        cancelButton.accessibilityHint = "Discard changes and close editor"
+        navigationItem.leftBarButtonItem = cancelButton
+        
+        let saveButton = UIBarButtonItem(barButtonSystemItem: .save, target: self, action: #selector(saveTapped))
+        saveButton.accessibilityLabel = "Save"
+        saveButton.accessibilityHint = "Save changes and close editor"
+        navigationItem.rightBarButtonItem = saveButton
         
         tableView = UITableView(frame: .zero, style: .insetGrouped)
         tableView.delegate = self
@@ -1292,14 +1352,47 @@ class AutomationEditorViewController: UIViewController {
     
     private func validateForm() -> Bool {
         guard let pattern = formData["pattern"] as? String, !pattern.isEmpty else {
-            showAlert(title: "Validation Error", message: "Pattern cannot be empty")
+            ErrorPresenter.showValidationError("Pattern cannot be empty")
             return false
         }
         
+        // Validate pattern based on automation type
+        switch automationType {
+        case .triggers:
+            if let error = InputValidator.validateTriggerPattern(pattern, type: .regex) {
+                ErrorPresenter.showValidationError(error)
+                return false
+            }
+        case .aliases:
+            if let error = InputValidator.validateAliasName(pattern) {
+                ErrorPresenter.showValidationError(error)
+                return false
+            }
+        default:
+            break
+        }
+        
+        // Validate action/commands for non-gag types
         if automationType != .gags {
             guard let action = formData["action"] as? String, !action.isEmpty else {
-                showAlert(title: "Validation Error", message: "Action/Commands cannot be empty")
+                ErrorPresenter.showValidationError("Action/Commands cannot be empty")
                 return false
+            }
+            
+            // Sanitize commands for security
+            let sanitized = InputValidator.sanitizeCommand(action)
+            if let warning = InputValidator.validateCommandSafety(sanitized) {
+                // Show warning but allow user to continue
+                ErrorPresenter.showWarning(
+                    title: "Command Warning",
+                    message: warning + "\n\nDo you want to continue?",
+                    continueAction: { [weak self] in
+                        self?.formData["action"] = sanitized
+                        self?.saveAutomationItem()
+                        self?.delegate?.automationEditorDidSave(self!)
+                    }
+                )
+                return false // Don't proceed directly, wait for user confirmation
             }
         }
         
@@ -1362,9 +1455,7 @@ class AutomationEditorViewController: UIViewController {
     }
     
     private func showAlert(title: String, message: String) {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
+        ErrorPresenter.showError(title: title, message: message)
     }
 }
 
@@ -2265,9 +2356,7 @@ class AutomationTesterViewController: UIViewController {
     }
     
     private func showAlert(title: String, message: String) {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
+        ErrorPresenter.showError(title: title, message: message)
     }
 }
 
@@ -2643,9 +2732,7 @@ class AutomationOrganizerViewController: UIViewController {
     }
     
     private func showAlert(title: String, message: String) {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
+        ErrorPresenter.showError(title: title, message: message)
     }
 }
 
@@ -2746,3 +2833,4 @@ extension AutomationOrganizerViewController: UITableViewDelegate {
         }
     }
 }
+
