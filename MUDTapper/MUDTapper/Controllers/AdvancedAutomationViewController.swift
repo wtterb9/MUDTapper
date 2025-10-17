@@ -759,42 +759,53 @@ class AdvancedAutomationViewController: UIViewController {
     }
     
     private func deleteAutomationItem(_ item: AutomationItem) {
-        let alert = UIAlertController(
+        ErrorPresenter.showConfirmation(
             title: "Delete \(item.type.singularTitle)",
-            message: "Are you sure you want to delete '\(item.name)'?",
-            preferredStyle: .alert
+            message: "Are you sure you want to delete '\(item.name)'?\n\nThis action cannot be undone.",
+            confirmTitle: "Delete",
+            confirmStyle: .destructive,
+            confirmAction: { [weak self] in
+                self?.performDelete(item)
+            }
         )
-        
-        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
-            switch item.type {
-            case .triggers:
-                if let trigger = item.managedObject as? Trigger {
-                    trigger.isHidden = true
-                }
-            case .aliases:
-                if let alias = item.managedObject as? Alias {
-                    alias.isHidden = true
-                }
-            case .gags:
-                if let gag = item.managedObject as? Gag {
-                    gag.isHidden = true
-                }
-            case .tickers:
-                if let ticker = item.managedObject as? Ticker {
-                    ticker.isHidden = true
-                }
+    }
+    
+    private func performDelete(_ item: AutomationItem) {
+        switch item.type {
+        case .triggers:
+            if let trigger = item.managedObject as? Trigger {
+                trigger.isHidden = true
             }
+        case .aliases:
+            if let alias = item.managedObject as? Alias {
+                alias.isHidden = true
+            }
+        case .gags:
+            if let gag = item.managedObject as? Gag {
+                gag.isHidden = true
+            }
+        case .tickers:
+            if let ticker = item.managedObject as? Ticker {
+                ticker.isHidden = true
+            }
+        }
+        
+        do {
+            try world.managedObjectContext?.save()
             
-            do {
-                try self?.world.managedObjectContext?.save()
-                self?.refreshAutomationItems()
-            } catch {
-                self?.showAlert(title: "Error", message: "Failed to delete item.")
-            }
-        })
-        
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        present(alert, animated: true)
+            // Provide haptic feedback
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+            
+            refreshAutomationItems()
+        } catch {
+            Logger.logCoreDataError("Failed to delete automation item", error: error)
+            ErrorPresenter.showError(
+                title: "Delete Failed",
+                message: "Failed to delete \(item.type.singularTitle.lowercased()).",
+                error: error
+            )
+        }
     }
     
     private func showAlert(title: String, message: String) {
@@ -906,6 +917,90 @@ extension AdvancedAutomationViewController: UITableViewDelegate {
         } else {
             return UITableView.automaticDimension
         }
+    }
+    
+    // MARK: - Swipe Actions
+    
+    func tableView(_ tableView: UITableView, leadingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        // Only add swipe actions for automation items, not for summary or empty state
+        guard indexPath.section == 1, !filteredItems.isEmpty else {
+            return nil
+        }
+        
+        let item = filteredItems[indexPath.row]
+        
+        // Toggle action (Enable/Disable)
+        let toggleTitle = item.isEnabled ? "Disable" : "Enable"
+        let toggleAction = UIContextualAction(style: .normal, title: toggleTitle) { [weak self] _, _, completion in
+            self?.toggleAutomationItem(item)
+            
+            // Provide haptic feedback
+            let generator = UINotificationFeedbackGenerator()
+            generator.notificationOccurred(.success)
+            
+            // Refresh the cell
+            tableView.reloadRows(at: [indexPath], with: .automatic)
+            completion(true)
+        }
+        toggleAction.image = UIImage(systemName: item.isEnabled ? "pause.circle.fill" : "play.circle.fill")
+        toggleAction.backgroundColor = item.isEnabled ? .systemOrange : .systemGreen
+        
+        let configuration = UISwipeActionsConfiguration(actions: [toggleAction])
+        configuration.performsFirstActionWithFullSwipe = true // Full swipe = toggle
+        
+        return configuration
+    }
+    
+    func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        // Only add swipe actions for automation items, not for summary or empty state
+        guard indexPath.section == 1, !filteredItems.isEmpty else {
+            return nil
+        }
+        
+        let item = filteredItems[indexPath.row]
+        
+        // Delete action
+        let deleteAction = UIContextualAction(style: .destructive, title: "Delete") { [weak self] _, _, completion in
+            self?.deleteAutomationItem(item)
+            completion(true)
+        }
+        deleteAction.image = UIImage(systemName: "trash.fill")
+        deleteAction.backgroundColor = .systemRed
+        
+        // Edit action
+        let editAction = UIContextualAction(style: .normal, title: "Edit") { [weak self] _, _, completion in
+            self?.editAutomationItem(item)
+            completion(true)
+        }
+        editAction.image = UIImage(systemName: "pencil")
+        editAction.backgroundColor = .systemBlue
+        
+        // Test action (only for triggers)
+        var actions: [UIContextualAction] = [deleteAction, editAction]
+        
+        if item.type == .triggers {
+            let testAction = UIContextualAction(style: .normal, title: "Test") { [weak self] _, _, completion in
+                self?.testAutomationItem(item)
+                completion(true)
+            }
+            testAction.image = UIImage(systemName: "testtube.2")
+            testAction.backgroundColor = .systemOrange
+            actions.insert(testAction, at: 1)
+        }
+        
+        // Duplicate action
+        let duplicateAction = UIContextualAction(style: .normal, title: "Copy") { [weak self] _, _, completion in
+            self?.duplicateAutomationItem(item)
+            completion(true)
+        }
+        duplicateAction.image = UIImage(systemName: "doc.on.doc")
+        duplicateAction.backgroundColor = .systemGreen
+        actions.insert(duplicateAction, at: 0)
+        
+        let configuration = UISwipeActionsConfiguration(actions: actions)
+        configuration.performsFirstActionWithFullSwipe = true // Full swipe = delete
+        
+        return configuration
     }
 
     // Ensure section headers are legible on dark backgrounds
