@@ -78,8 +78,9 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 let baseName = host
                 var counter = 1
                 var uniqueName = baseName
+                let maxAttempts = 1000 // Safety limit to prevent infinite loop
                 
-                while true {
+                while counter < maxAttempts {
                     let nameCheck = NSPredicate(format: "name == %@ AND isHidden == NO", uniqueName)
                     let nameRequest: NSFetchRequest<World> = World.fetchRequest()
                     nameRequest.predicate = nameCheck
@@ -91,6 +92,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                     
                     counter += 1
                     uniqueName = "\(baseName) \(counter)"
+                }
+                
+                // If we hit the max attempts, use timestamp to ensure uniqueness
+                if counter >= maxAttempts {
+                    uniqueName = "\(baseName) \(Int(Date().timeIntervalSince1970))"
                 }
                 
                 world.name = uniqueName

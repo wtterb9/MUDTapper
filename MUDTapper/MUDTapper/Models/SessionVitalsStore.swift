@@ -24,10 +24,12 @@ final class SessionVitalsStore {
     }
 
     private var vitalsByWorldID: [NSManagedObjectID: Vitals] = [:]
-    private let queue = DispatchQueue(label: "com.mudtapper.vitals", qos: .userInitiated)
+    // Use concurrent queue with barrier for thread-safe reads and writes
+    private let queue = DispatchQueue(label: "com.mudtapper.vitals", qos: .userInitiated, attributes: .concurrent)
 
     func update(worldID: NSManagedObjectID, with variables: [String: String]) {
-        queue.async {
+        // Use barrier flag for thread-safe writes
+        queue.async(flags: .barrier) {
             var current = self.vitalsByWorldID[worldID] ?? Vitals(hp: nil, hpMax: nil, mana: nil, manaMax: nil, updatedAt: Date())
             // Build a normalized view of server variables for tolerant matching
             // Normalize by lowercasing and stripping non-alphanumerics so
@@ -119,7 +121,24 @@ final class SessionVitalsStore {
     }
 
     func vitals(for worldID: NSManagedObjectID) -> Vitals? {
+        // Concurrent read - safe because we use barriers for writes
         return queue.sync { vitalsByWorldID[worldID] }
+    }
+    
+    // MARK: - Cleanup
+    
+    /// Clear vitals for a specific world (e.g., when disconnecting)
+    func clearVitals(for worldID: NSManagedObjectID) {
+        queue.async(flags: .barrier) {
+            self.vitalsByWorldID.removeValue(forKey: worldID)
+        }
+    }
+    
+    /// Clear all stored vitals
+    func clearAllVitals() {
+        queue.async(flags: .barrier) {
+            self.vitalsByWorldID.removeAll()
+        }
     }
 
     private func firstInt(forKeys keys: [String], in dict: [String: String]) -> Int? {

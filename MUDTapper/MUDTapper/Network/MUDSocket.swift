@@ -44,6 +44,7 @@ class MUDSocket: NSObject {
     private var lastDataReceiveTime: Date = Date()
     private var consecutiveKeepAliveFailures = 0
     private var backgroundTaskChainTimer: Timer?
+    private var backgroundTimeMonitorTimer: Timer?
     private var isInDeepBackground = false
     private var pathMonitor: NWPathMonitor?
     
@@ -295,18 +296,44 @@ class MUDSocket: NSObject {
     func disconnect() {
         // Clean up compression if active
         endDecompression()
+        
+        // Stop all timers to prevent memory leaks
         stopKeepAliveTimer()
         stopReconnectTimer()
+        stopBackgroundKeepAlive()
+        stopConnectionLossDetection()
+        stopBackgroundTaskChaining()
+        stopHealthCheckTimer()
+        
+        // Stop monitoring
         stopNetworkMonitoring()
+        stopPathMonitoring()
+        
+        // End background tasks
         endConnectionMaintenanceTask()
         endBackgroundTask()
         disableVoIPBackgroundProtection()
+        
+        // Cancel connection
         connection?.cancel()
         connection = nil
         connectedHost = nil
         connectedPort = 0
+        currentWorldObjectID = nil
         shouldReconnect = false
         reconnectAttempts = 0
+        
+        // Reset state
+        consecutiveKeepAliveFailures = 0
+        isInDeepBackground = false
+        isInBackground = false
+    }
+    
+    // MARK: - Timer Cleanup Methods
+    
+    private func stopHealthCheckTimer() {
+        connectionHealthCheckTimer?.invalidate()
+        connectionHealthCheckTimer = nil
     }
     
     // MARK: - Data Transmission
@@ -618,6 +645,8 @@ class MUDSocket: NSObject {
         #if DEBUG
         print("MUDSocket: Ending connection maintenance task")
         #endif
+        
+        // Stop all associated timers to prevent memory leaks
         stopBackgroundKeepAlive()
         stopBackgroundTimeMonitoring()
         
@@ -655,8 +684,10 @@ class MUDSocket: NSObject {
     }
     
     private func startBackgroundTimeMonitoring() {
+        stopBackgroundTimeMonitoring()
+        
         // Monitor remaining background time and adapt strategy
-        Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] timer in
+        backgroundTimeMonitorTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] timer in
             guard let self = self else {
                 timer.invalidate()
                 return
@@ -677,7 +708,7 @@ class MUDSocket: NSObject {
                 self.stopBackgroundKeepAlive()
                 // Send one final keep-alive
                 self.sendKeepAlive()
-                timer.invalidate()
+                self.stopBackgroundTimeMonitoring()
             } else if backgroundTimeRemaining < 60 {
                 // Reduce frequency to every 20 seconds
                 self.stopBackgroundKeepAlive()
@@ -686,13 +717,14 @@ class MUDSocket: NSObject {
             
             // Stop monitoring if task is no longer valid
             if self.connectionMaintenanceTask == .invalid {
-                timer.invalidate()
+                self.stopBackgroundTimeMonitoring()
             }
         }
     }
     
     private func stopBackgroundTimeMonitoring() {
-        // Timer will be invalidated by the monitoring logic itself
+        backgroundTimeMonitorTimer?.invalidate()
+        backgroundTimeMonitorTimer = nil
     }
     
     private func startBackgroundTask() {
@@ -1267,7 +1299,8 @@ class MUDSocket: NSObject {
                 // Proactively request current values so starting below max is reflected immediately
                 sendMSDPSend(variables: ["HEALTH", "HEALTH_MAX", "HP", "HP_MAX", "MANA", "MANA_MAX", "MN", "MN_MAX"]) 
             }
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
                 self.delegate?.mudSocket(self, didConnectToHost: self.connectedHost ?? "", port: self.connectedPort)
             }
             // Start receiving data now that connection is ready
@@ -1291,7 +1324,8 @@ class MUDSocket: NSObject {
                 #endif
             }
             
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
                 self.delegate?.mudSocket(self, didDisconnectWithError: error)
             }
             
@@ -1312,7 +1346,8 @@ class MUDSocket: NSObject {
             print("MUDSocket: Connection was cancelled")
             #endif
             stopKeepAliveTimer()
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
                 self.delegate?.mudSocket(self, didDisconnectWithError: nil)
             }
             // Don't attempt reconnection if manually cancelled
@@ -1385,17 +1420,18 @@ class MUDSocket: NSObject {
                 
                 // Process telnet negotiation, compression, and extract plain payload
                 let filtered = self?.handleTelnetNegotiation(data) ?? data
-                DispatchQueue.main.async {
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
                     if !filtered.isEmpty {
                         // If waiting on a latency probe, compute latency on first received payload
-                        if let sentAt = self?.latencyProbeSentAt, self?.awaitingLatencyProbe == true, self?.isInBackground == false {
+                        if let sentAt = self.latencyProbeSentAt, self.awaitingLatencyProbe == true, self.isInBackground == false {
                             let ms = Int(Date().timeIntervalSince(sentAt) * 1000)
-                            self?.lastLatencyMs = ms
-                            self?.awaitingLatencyProbe = false
-                            self?.latencyProbeSentAt = nil
-                            self?.delegate?.mudSocket(self!, didUpdateLatencyMs: ms)
+                            self.lastLatencyMs = ms
+                            self.awaitingLatencyProbe = false
+                            self.latencyProbeSentAt = nil
+                            self.delegate?.mudSocket(self, didUpdateLatencyMs: ms)
                         }
-                        self?.delegate?.mudSocket(self!, didReceiveData: filtered)
+                        self.delegate?.mudSocket(self, didReceiveData: filtered)
                     }
                 }
             } else {
@@ -1408,8 +1444,9 @@ class MUDSocket: NSObject {
                 #if DEBUG
                 print("MUDSocket: Receive error: \(error)")
                 #endif
-                DispatchQueue.main.async {
-                    self?.delegate?.mudSocket(self!, didDisconnectWithError: error)
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.delegate?.mudSocket(self, didDisconnectWithError: error)
                 }
                 return
             }
@@ -1418,8 +1455,9 @@ class MUDSocket: NSObject {
                 #if DEBUG
                 print("MUDSocket: Connection completed")
                 #endif
-                DispatchQueue.main.async {
-                    self?.delegate?.mudSocket(self!, didDisconnectWithError: nil)
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.delegate?.mudSocket(self, didDisconnectWithError: nil)
                 }
                 return
             }

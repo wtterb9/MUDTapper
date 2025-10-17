@@ -37,6 +37,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Setup default user preferences
         setupDefaultUserDefaults()
         
+        // Migrate passwords from Core Data to Keychain (one-time migration)
+        migratePasswordsIfNeeded()
+        
         // Register for app state notifications
         setupAppStateNotifications()
         
@@ -72,8 +75,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                 let baseName = host
                 var counter = 1
                 var uniqueName = baseName
+                let maxAttempts = 1000 // Safety limit to prevent infinite loop
                 
-                while true {
+                while counter < maxAttempts {
                     let nameCheck = NSPredicate(format: "name == %@ AND isHidden == NO", uniqueName)
                     let nameRequest: NSFetchRequest<World> = World.fetchRequest()
                     nameRequest.predicate = nameCheck
@@ -85,6 +89,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
                     
                     counter += 1
                     uniqueName = "\(baseName) \(counter)"
+                }
+                
+                // If we hit the max attempts, use timestamp to ensure uniqueness
+                if counter >= maxAttempts {
+                    uniqueName = "\(baseName) \(Int(Date().timeIntervalSince1970))"
                 }
                 
                 world.name = uniqueName
@@ -173,6 +182,18 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         ]
         
         UserDefaults.standard.register(defaults: defaults)
+    }
+    
+    private func migratePasswordsIfNeeded() {
+        // Check if migration has already been completed
+        guard !UserDefaults.standard.bool(forKey: "KeychainMigrationCompleted") else {
+            return
+        }
+        
+        // Perform migration on background queue
+        DispatchQueue.global(qos: .utility).async {
+            KeychainManager.shared.migratePasswordsFromCoreData()
+        }
     }
     
     private func setupAppStateNotifications() {
