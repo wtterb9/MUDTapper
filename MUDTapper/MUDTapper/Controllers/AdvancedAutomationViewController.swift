@@ -93,7 +93,21 @@ class AdvancedAutomationViewController: UIViewController {
         super.viewDidLoad()
         setupUI()
         setupSearchController()
+        setupNotifications()
         loadAutomationItems()
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    private func setupNotifications() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleQuickToggle(_:)),
+            name: .automationItemQuickToggleTapped,
+            object: nil
+        )
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -353,6 +367,25 @@ class AdvancedAutomationViewController: UIViewController {
     }
     
     // MARK: - Actions
+    
+    @objc private func handleQuickToggle(_ notification: Notification) {
+        guard let cell = notification.object as? AutomationItemCell,
+              let indexPath = tableView.indexPath(for: cell),
+              indexPath.section == 1,
+              !filteredItems.isEmpty else {
+            return
+        }
+        
+        let item = filteredItems[indexPath.row]
+        toggleAutomationItem(item)
+        
+        // Provide haptic feedback
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+        
+        // Refresh the cell to show updated state
+        tableView.reloadRows(at: [indexPath], with: .automatic)
+    }
     
     @objc private func doneButtonTapped() {
         dismiss(animated: true)

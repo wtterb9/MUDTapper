@@ -45,6 +45,8 @@ class TriggerEditorViewController: UIViewController {
         patternField.borderStyle = .roundedRect
         patternField.autocapitalizationType = .none
         patternField.autocorrectionType = .no
+        patternField.textColor = ThemeManager.shared.terminalTextColor
+        patternField.keyboardAppearance = ThemeManager.shared.isDarkTheme ? .dark : .light
 
         infoLabel.text = "Tip: Use * and ? for wildcards, or regex."
         infoLabel.textColor = ThemeManager.shared.terminalTextColor.withAlphaComponent(0.7)
@@ -58,7 +60,9 @@ class TriggerEditorViewController: UIViewController {
         commandsView.layer.borderWidth = 1
         commandsView.layer.borderColor = UIColor.systemGray4.cgColor
         commandsView.layer.cornerRadius = 8
-        commandsView.backgroundColor = UIColor.systemBackground
+        commandsView.backgroundColor = ThemeManager.shared.terminalBackgroundColor
+        commandsView.textColor = ThemeManager.shared.terminalTextColor
+        commandsView.keyboardAppearance = ThemeManager.shared.isDarkTheme ? .dark : .light
         commandsView.heightAnchor.constraint(equalToConstant: 260).isActive = true
 
         stack.addArrangedSubview(patternField)
