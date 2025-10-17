@@ -47,66 +47,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
     
     func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
-        guard let host = url.host, url.scheme == "telnet" else {
-            return false
-        }
-        
-        let context = PersistenceController.shared.viewContext
-        let port = url.port ?? 23
-        
-        // Check if this exact world already exists (hostname + port)
-        let predicate = NSPredicate(format: "hostname == %@ AND port == %d AND isHidden == NO", host.lowercased(), Int32(port))
-        let request: NSFetchRequest<World> = World.fetchRequest()
-        request.predicate = predicate
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \World.name, ascending: true)]
-        
-        do {
-            let existingWorlds = try context.fetch(request)
-            
-            if let existing = existingWorlds.first {
-                // Post notification for existing world
-                NotificationCenter.default.post(name: .worldChanged, object: existing.objectID)
-            } else {
-                // Create new world from URL with unique name
-                let world = World.createWorld(from: url, in: context)
-                world.isHidden = false
-                
-                // Generate unique name if needed
-                let baseName = host
-                var counter = 1
-                var uniqueName = baseName
-                let maxAttempts = 1000 // Safety limit to prevent infinite loop
-                
-                while counter < maxAttempts {
-                    let nameCheck = NSPredicate(format: "name == %@ AND isHidden == NO", uniqueName)
-                    let nameRequest: NSFetchRequest<World> = World.fetchRequest()
-                    nameRequest.predicate = nameCheck
-                    
-                    let nameExists = (try? context.fetch(nameRequest).isEmpty) == false
-                    if !nameExists {
-                        break
-                    }
-                    
-                    counter += 1
-                    uniqueName = "\(baseName) \(counter)"
-                }
-                
-                // If we hit the max attempts, use timestamp to ensure uniqueness
-                if counter >= maxAttempts {
-                    uniqueName = "\(baseName) \(Int(Date().timeIntervalSince1970))"
-                }
-                
-                world.name = uniqueName
-                
-                try context.save()
-                NotificationCenter.default.post(name: .worldChanged, object: world.objectID)
-            }
-            
-            return true
-        } catch {
-            print("Error handling URL: \(error)")
-            return false
-        }
+        return URLHandler.shared.handleTelnetURL(url)
     }
     
     // MARK: - App State Handling
@@ -273,7 +214,8 @@ struct UserDefaultsKeys {
     // Phase 2 - New settings keys
     static let autoSendCommands = "kPrefAutoSendCommands"
     static let saveCommandHistory = "kPrefSaveCommandHistory"
-    static let autoCapitalization = "kPrefAutoCapitalization"
+    // Note: autocapitalization is the canonical key (line 245)
+    // autoCapitalization is deprecated - use autocapitalization instead
     static let smartPunctuation = "kPrefSmartPunctuation"
     static let commandHistory = "kPrefCommandHistory"
     static let commandCompletion = "kPrefCommandCompletion"

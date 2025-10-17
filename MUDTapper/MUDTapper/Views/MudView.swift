@@ -702,7 +702,7 @@ extension MudView: RadialDirectionalPadDelegate {
         } else {
             // Fallback to notification if we can't find the controller directly
             NotificationCenter.default.post(
-                name: NSNotification.Name("RadialButtonCommand"),
+                name: .radialButtonCommand,
                 object: command
             )
         }
@@ -1105,4 +1105,10 @@ extension UIView {
             return nil
         }
     }
+}
+
+// MARK: - Notification Names
+
+extension Notification.Name {
+    static let radialButtonCommand = Notification.Name("RadialButtonCommand")
 } 

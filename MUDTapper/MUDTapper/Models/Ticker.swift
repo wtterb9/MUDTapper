@@ -31,7 +31,7 @@ public class Ticker: NSManagedObject {
         let ticker = Ticker(context: context)
         ticker.isEnabled = true
         ticker.isHidden = false
-        ticker.interval = 60.0 // Default to 60 seconds
+        ticker.interval = AppConstants.Automation.defaultTickerInterval
         ticker.lastModified = Date()
         return ticker
     }

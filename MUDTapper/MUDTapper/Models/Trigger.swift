@@ -183,16 +183,22 @@ public class Trigger: NSManagedObject {
     
     // MARK: - MushClient-Style Pattern Matching
     
-    // Cache compiled regex by (pattern|ignoreCase|type) to avoid recompilation per line
-    private var regexCache: NSRegularExpression?
-    private var regexCacheKey: String?
+    // Improved regex cache using NSCache for automatic memory management
+    private static let regexCache = NSCache<NSString, NSRegularExpression>()
     
     private var compiledRegex: NSRegularExpression? {
         guard let pattern = trigger else { return nil }
-        let options: NSRegularExpression.Options = shouldIgnoreCase ? [.caseInsensitive] : []
-        let cacheKey = "\(pattern)|\(shouldIgnoreCase ? 1 : 0)|\(triggerTypeEnum.rawValue)"
-        if cacheKey == regexCacheKey, let cached = regexCache { return cached }
         
+        // Create cache key from pattern, options, and type
+        let options: NSRegularExpression.Options = shouldIgnoreCase ? [.caseInsensitive] : []
+        let cacheKey = "\(pattern)|\(shouldIgnoreCase ? 1 : 0)|\(triggerTypeEnum.rawValue)" as NSString
+        
+        // Check cache first
+        if let cached = Self.regexCache.object(forKey: cacheKey) {
+            return cached
+        }
+        
+        // Compile regex based on trigger type
         let compiled: NSRegularExpression?
         switch triggerTypeEnum {
         case .regex:
@@ -206,8 +212,12 @@ public class Trigger: NSManagedObject {
         default:
             compiled = nil
         }
-        regexCacheKey = compiled == nil ? nil : cacheKey
-        regexCache = compiled
+        
+        // Store in cache if compilation succeeded
+        if let regex = compiled {
+            Self.regexCache.setObject(regex, forKey: cacheKey)
+        }
+        
         return compiled
     }
     
@@ -569,7 +579,7 @@ public class Trigger: NSManagedObject {
     func execute(for line: String) -> Bool {
         guard matches(line: line) else { return false }
         
-        print("    🚀 Executing trigger: '\(trigger ?? "")'")
+        Logger.logTrigger("Executing trigger: '\(trigger ?? "")'")
         
         // Increment match count
         matchCount += 1
@@ -587,7 +597,7 @@ public class Trigger: NSManagedObject {
             let scriptCommands = lua.evaluate(script: scriptCode, variables: capturedVariables)
             if !scriptCommands.isEmpty { commands.append(contentsOf: scriptCommands) }
         }
-        print("    📜 Processed commands: \(commands)")
+        Logger.logTrigger("Processed commands: \(commands)")
         
         // Send notification with trigger details
         let userInfo: [String: Any] = [
@@ -598,7 +608,7 @@ public class Trigger: NSManagedObject {
             "shouldOmitFromOutput": shouldOmitFromOutput
         ]
         
-        print("    📢 Posting trigger notification with commands: \(commands)")
+        Logger.logTrigger("Posting trigger notification with \(commands.count) command(s)")
         NotificationCenter.default.post(name: .triggerDidFire, object: world, userInfo: userInfo)
         
         // Handle one-shot triggers
@@ -878,7 +888,7 @@ extension Trigger {
         do {
             return try context.fetch(request)
         } catch {
-            print("Error fetching triggers: \(error)")
+            Logger.logCoreDataError("Error fetching triggers", error: error)
             return []
         }
     }

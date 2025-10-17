@@ -52,60 +52,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     // MARK: - Private Methods
     
     private func handleURL(_ url: URL) {
-        guard let host = url.host, url.scheme == "telnet" else { return }
-        
-        let context = PersistenceController.shared.viewContext
-        let port = url.port ?? 23
-        
-        // Check if this exact world already exists (hostname + port)
-        let predicate = NSPredicate(format: "hostname == %@ AND port == %d AND isHidden == NO", host.lowercased(), Int32(port))
-        let request: NSFetchRequest<World> = World.fetchRequest()
-        request.predicate = predicate
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \World.name, ascending: true)]
-        
-        do {
-            let existingWorlds = try context.fetch(request)
-            
-            if let existing = existingWorlds.first {
-                // Post notification for existing world
-                NotificationCenter.default.post(name: .worldChanged, object: existing.objectID)
-            } else {
-                // Create new world from URL with unique name
-                let world = World.createWorld(from: url, in: context)
-                world.isHidden = false
-                
-                // Generate unique name if needed
-                let baseName = host
-                var counter = 1
-                var uniqueName = baseName
-                let maxAttempts = 1000 // Safety limit to prevent infinite loop
-                
-                while counter < maxAttempts {
-                    let nameCheck = NSPredicate(format: "name == %@ AND isHidden == NO", uniqueName)
-                    let nameRequest: NSFetchRequest<World> = World.fetchRequest()
-                    nameRequest.predicate = nameCheck
-                    
-                    let nameExists = (try? context.fetch(nameRequest).isEmpty) == false
-                    if !nameExists {
-                        break
-                    }
-                    
-                    counter += 1
-                    uniqueName = "\(baseName) \(counter)"
-                }
-                
-                // If we hit the max attempts, use timestamp to ensure uniqueness
-                if counter >= maxAttempts {
-                    uniqueName = "\(baseName) \(Int(Date().timeIntervalSince1970))"
-                }
-                
-                world.name = uniqueName
-                
-                try context.save()
-                NotificationCenter.default.post(name: .worldChanged, object: world.objectID)
-            }
-        } catch {
-            print("Error handling URL: \(error)")
-        }
+        URLHandler.shared.handleTelnetURL(url)
     }
 } 

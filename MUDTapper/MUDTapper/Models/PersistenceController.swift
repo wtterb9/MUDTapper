@@ -26,7 +26,7 @@ class PersistenceController {
             try viewContext.save()
         } catch {
             // In preview mode, log the error but don't crash
-            print("Preview context save error: \(error)")
+            Logger.logCoreDataError("Preview context save error", error: error)
         }
         return result
     }()
@@ -53,7 +53,7 @@ class PersistenceController {
                 self?.isInitialized = false
                 
                 // Log the error
-                print("Core Data initialization error: \(error), \(error.userInfo)")
+                Logger.fault("Core Data initialization failed", error: error, category: Logger.coreData)
                 
                 // Show user-facing error alert
                 DispatchQueue.main.async {
@@ -61,6 +61,7 @@ class PersistenceController {
                 }
             } else {
                 self?.isInitialized = true
+                Logger.info("Core Data initialized successfully", category: Logger.coreData)
             }
         }
         
@@ -70,20 +71,11 @@ class PersistenceController {
     // MARK: - Error Handling
     
     private func showCoreDataError(_ error: Error) {
-        let alert = UIAlertController(
+        ErrorPresenter.showError(
             title: "Database Error",
-            message: "MUDTapper encountered a problem initializing its database. The app may not function correctly.\n\nError: \(error.localizedDescription)",
-            preferredStyle: .alert
+            message: "MUDTapper encountered a problem initializing its database. The app may not function correctly.",
+            error: error
         )
-        
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        
-        // Try to find the top-most view controller to present from
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let window = windowScene.windows.first,
-           let rootViewController = window.rootViewController {
-            rootViewController.present(alert, animated: true)
-        }
     }
     
     var viewContext: NSManagedObjectContext {
@@ -98,7 +90,7 @@ class PersistenceController {
                 try context.save()
             } catch {
                 let nsError = error as NSError
-                print("Core Data save error: \(nsError), \(nsError.userInfo)")
+                Logger.error("Core Data save failed", error: nsError, category: Logger.coreData)
                 
                 // Try to recover by rolling back changes
                 context.rollback()
@@ -112,24 +104,11 @@ class PersistenceController {
     }
     
     private func showSaveError(_ error: NSError) {
-        let alert = UIAlertController(
+        ErrorPresenter.showError(
             title: "Save Error",
-            message: "Failed to save your changes. The app has reverted to the last saved state.\n\nError: \(error.localizedDescription)",
-            preferredStyle: .alert
+            message: "Failed to save your changes. The app has reverted to the last saved state.",
+            error: error
         )
-        
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        
-        // Try to find the top-most view controller to present from
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let window = windowScene.windows.first,
-           let rootViewController = window.rootViewController {
-            var presenter = rootViewController
-            while let presented = presenter.presentedViewController {
-                presenter = presented
-            }
-            presenter.present(alert, animated: true)
-        }
     }
     
     func saveContext() {

@@ -165,15 +165,15 @@ class WorldDisplayController: UIViewController {
         do {
             try fetchedResultsController.performFetch()
             let count = fetchedResultsController.fetchedObjects?.count ?? 0
-            print("WorldDisplayController: Fetched \(count) worlds")
+            Logger.debug("Fetched \(count) worlds", category: Logger.coreData)
             
             // If no worlds exist, create some default ones
             if count == 0 {
-                print("WorldDisplayController: No worlds found, creating default worlds")
+                Logger.info("No worlds found, creating default worlds", category: Logger.coreData)
                 createDefaultWorlds()
             }
         } catch {
-            print("Error fetching worlds: \(error)")
+            Logger.logCoreDataError("Error fetching worlds", error: error)
         }
     }
     
@@ -397,7 +397,7 @@ class WorldDisplayController: UIViewController {
             try fetchedResultsController.performFetch()
             tableView.reloadData()
         } catch {
-            print("Failed to fetch worlds: \(error)")
+            Logger.logCoreDataError("Failed to fetch worlds", error: error)
         }
     }
 }
@@ -450,9 +450,9 @@ extension WorldDisplayController: UITableViewDataSource {
         // Save changes
         do {
             try context.save()
-            print("Successfully reordered worlds")
+            Logger.debug("Successfully reordered worlds", category: Logger.coreData)
         } catch {
-            print("Failed to save reorder: \(error)")
+            Logger.logCoreDataError("Failed to save world reorder", error: error)
         }
         
         // Re-enable the delegate and perform a fresh fetch
@@ -461,7 +461,7 @@ extension WorldDisplayController: UITableViewDataSource {
             try fetchedResultsController.performFetch()
             tableView.reloadData()
         } catch {
-            print("Failed to refresh after reorder: \(error)")
+            Logger.logCoreDataError("Failed to refresh after world reorder", error: error)
         }
     }
 }
@@ -554,7 +554,7 @@ extension WorldDisplayController: UITableViewDelegate {
                     newDefault.lastModified = Date()
                 }
             } catch {
-                print("Error finding new default world: \(error)")
+                Logger.logCoreDataError("Error finding new default world", error: error)
             }
         }
         
@@ -575,7 +575,7 @@ extension WorldDisplayController: UITableViewDelegate {
             present(successAlert, animated: true)
             
         } catch {
-            print("Error deleting world: \(error)")
+            Logger.logCoreDataError("Error deleting world", error: error)
             
             // Show error message
             let errorAlert = UIAlertController(
@@ -605,7 +605,7 @@ extension WorldDisplayController: UITableViewDelegate {
             alert.addAction(UIAlertAction(title: "OK", style: .default))
             present(alert, animated: true)
         } catch {
-            print("Error restoring world: \(error)")
+            Logger.logCoreDataError("Error restoring world", error: error)
             let alert = UIAlertController(title: "Restore Failed", message: "Failed to restore world: \(error.localizedDescription)", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "OK", style: .default))
             present(alert, animated: true)
@@ -808,7 +808,7 @@ extension WorldDisplayController {
         
         do {
             try context.save()
-            print("WorldDisplayController: Created default worlds")
+            Logger.info("Created default worlds", category: Logger.coreData)
             
             // Refresh the fetch controller
             try fetchedResultsController.performFetch()
@@ -816,7 +816,7 @@ extension WorldDisplayController {
                 self.tableView.reloadData()
             }
         } catch {
-            print("WorldDisplayController: Failed to create default worlds: \(error)")
+            Logger.logCoreDataError("Failed to create default worlds", error: error)
         }
     }
 } 

@@ -79,7 +79,7 @@ class InputSettingsViewController: SettingsViewController {
                 title: "Auto-Capitalization",
                 accessibilityLabel: "Auto-Capitalization",
                 accessibilityHint: "Automatically capitalize first letter of commands",
-                userDefaultsKey: UserDefaultsKeys.autoCapitalization,
+                userDefaultsKey: UserDefaultsKeys.autocapitalization,
                 defaultValue: false
             ),
             ToggleSettingsItem(

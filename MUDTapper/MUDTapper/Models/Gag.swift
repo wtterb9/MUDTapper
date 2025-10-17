@@ -88,7 +88,7 @@ public class Gag: NSManagedObject {
                 let range = NSRange(location: 0, length: line.utf16.count)
                 return regex.firstMatch(in: line, options: [], range: range) != nil
             } catch {
-                print("Invalid regex pattern in gag: \(gagText)")
+                Logger.warning("Invalid regex pattern in gag: \(gagText)", category: Logger.automation)
                 return false
             }
         }

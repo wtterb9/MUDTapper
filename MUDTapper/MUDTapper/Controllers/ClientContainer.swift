@@ -2,23 +2,23 @@ import UIKit
 import CoreData
 import Foundation
 
-// MARK: - Layout Constants
+// MARK: - Layout Constants (deprecated - use AppConstants.UI instead)
 
 enum LayoutConstants {
-    static let tabBarHeight: CGFloat = 36
-    static let sideMenuWidth: CGFloat = 300
-    static let sideMenuSwipeActivationEdgeWidth: CGFloat = 20
-    static let sideMenuOpenTranslationThreshold: CGFloat = 150
-    static let sideMenuDimAlpha: CGFloat = 0.7
+    static let tabBarHeight: CGFloat = AppConstants.UI.tabBarHeight
+    static let sideMenuWidth: CGFloat = AppConstants.UI.sideMenuWidth
+    static let sideMenuSwipeActivationEdgeWidth: CGFloat = AppConstants.UI.sideMenuSwipeActivationEdgeWidth
+    static let sideMenuOpenTranslationThreshold: CGFloat = AppConstants.UI.sideMenuOpenTranslationThreshold
+    static let sideMenuDimAlpha: CGFloat = AppConstants.UI.sideMenuDimAlpha
 }
 
-// MARK: - Animation Constants
+// MARK: - Animation Constants (deprecated - use AppConstants.UI instead)
 
 enum AnimationConstants {
-    static let keyboardMaxDuration: Double = 0.15
-    static let sideMenuAnimationDuration: Double = 0.3
-    static let dragEndAnimationDuration: Double = 0.2
-    static let tabBarLongPressDuration: Double = 0.8
+    static let keyboardMaxDuration: Double = AppConstants.UI.keyboardMaxDuration
+    static let sideMenuAnimationDuration: Double = AppConstants.UI.sideMenuAnimationDuration
+    static let dragEndAnimationDuration: Double = AppConstants.UI.dragEndAnimationDuration
+    static let tabBarLongPressDuration: Double = AppConstants.UI.tabBarLongPressDuration
 }
 
 // MARK: - Protocols

@@ -10,6 +10,10 @@
         1A2B3C4D5E6F708090A0B0C0 /* SessionVitalsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F1E2D3C4B5A697887766554 /* SessionVitalsStore.swift */; };
 		0A2E3D1D7817FDFC95550806 /* ThemeSettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF997AA3624C15E5AE4B9AB2 /* ThemeSettingsViewController.swift */; };
 		1B3E5F7A8C9D0E2F4A6B8C7D /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C4D6E8F9A0B1C3D5E7F9A1B /* KeychainManager.swift */; };
+		3D5E7F9A1B2C4D6E8F0A1B3C /* URLHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E6F8A0B1C2D3E5F7A9B0C1D /* URLHandler.swift */; };
+		5F7A9B0C1D2E3F4A6B8C9D0E /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A8B9C0D1E2F3A4B5C6D7E8F /* Logger.swift */; };
+		7A9B0C1D2E3F4A5B6C7D8E9F /* ErrorPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B9C0D1E2F3A4B5C6D7E8F9A /* ErrorPresenter.swift */; };
+		9B0C1D2E3F4A5B6C7D8E9F0A /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1D2E3F4A5B6C7D8E9F0A1B /* AppConstants.swift */; };
 		0B914DBC526C0929883FFAB7 /* ANSIProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 662BE16596DDC3A6772B38ED /* ANSIProcessorTests.swift */; };
 		0E8D95DC952C8A92A3CF4757 /* MUDTapper.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 38E2007CBADA8A0B272E3570 /* MUDTapper.xcdatamodeld */; };
 		183986E0575BA848DD7470B1 /* WorldCardCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6251685F95C9F653B7B79E28 /* WorldCardCell.swift */; };
@@ -62,7 +66,11 @@
 /* Begin PBXFileReference section */
         0F1E2D3C4B5A697887766554 /* SessionVitalsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionVitalsStore.swift; sourceTree = "<group>"; };
 		03BFF6C83A25A27685814871 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		0C1D2E3F4A5B6C7D8E9F0A1B /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
 		2C4D6E8F9A0B1C3D5E7F9A1B /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
+		4E6F8A0B1C2D3E5F7A9B0C1D /* URLHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLHandler.swift; sourceTree = "<group>"; };
+		6A8B9C0D1E2F3A4B5C6D7E8F /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
+		8B9C0D1E2F3A4B5C6D7E8F9A /* ErrorPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorPresenter.swift; sourceTree = "<group>"; };
 		04CBFE0E9639B868E0E679DE /* InputSettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputSettingsViewController.swift; sourceTree = "<group>"; };
 		04F852AEB2F93EAB7BF3927D /* EnhancedWorldManagementViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnhancedWorldManagementViewController.swift; sourceTree = "<group>"; };
 		0B3D1160D5249EE7267D9F6D /* ThemeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ThemeManager.swift; sourceTree = "<group>"; };
@@ -152,8 +160,11 @@
 			isa = PBXGroup;
 			children = (
 				C67C05EE9EEC92A71D370730 /* Alias.swift */,
+				0C1D2E3F4A5B6C7D8E9F0A1B /* AppConstants.swift */,
+				8B9C0D1E2F3A4B5C6D7E8F9A /* ErrorPresenter.swift */,
 				C72DCB45DCAAEB4BFAFE0ACF /* Gag.swift */,
 				2C4D6E8F9A0B1C3D5E7F9A1B /* KeychainManager.swift */,
+				6A8B9C0D1E2F3A4B5C6D7E8F /* Logger.swift */,
 				837B41FD87CA90409494345B /* NotificationManager.swift */,
 				B641755D33EC5B6623194F5D /* PersistenceController.swift */,
 				2A32DA433CA882F2FE5A75B4 /* RadialControl.swift */,
@@ -162,6 +173,7 @@
 				0B3D1160D5249EE7267D9F6D /* ThemeManager.swift */,
 				A24CD49C09E5D2BE6F7E8831 /* Ticker.swift */,
                 7CCC92BBDB0A6AEDE7690CFC /* Trigger.swift */,
+                4E6F8A0B1C2D3E5F7A9B0C1D /* URLHandler.swift */,
                 0F1E2D3C4B5A697887766554 /* SessionVitalsStore.swift */,
 				DFAD62E2FEDE014794189C7B /* World.swift */,
 			);
@@ -320,15 +332,19 @@
 				9640BA875AD82CAC9CE560DD /* AdvancedAutomationViewController.swift in Sources */,
 				393D16423CC28BA3C11B2BC5 /* Alias.swift in Sources */,
 				7B401A1DC9B676F1D9FA8850 /* AliasEditorViewController.swift in Sources */,
+				9B0C1D2E3F4A5B6C7D8E9F0A /* AppConstants.swift in Sources */,
 				761201608647B5D61F2DD3FC /* AppDelegate.swift in Sources */,
 				3453EC76B78331BAF1E57252 /* AutomationItemCell.swift in Sources */,
 				4A003A5560EDB30DDDD44FEC /* ClientContainer.swift in Sources */,
 				9388E2D7E65D30A1ADAA37EF /* ClientViewController.swift in Sources */,
 				CD4A7F79B3782B6810000ED4 /* EnhancedWorldManagementViewController.swift in Sources */,
+				7A9B0C1D2E3F4A5B6C7D8E9F /* ErrorPresenter.swift in Sources */,
 				6E9C5B6D6A864B1EA1538D59 /* Gag.swift in Sources */,
 				77F544E2D30C7DE3B4E27EF6 /* InputSettingsViewController.swift in Sources */,
 				1B3E5F7A8C9D0E2F4A6B8C7D /* KeychainManager.swift in Sources */,
 				599DA6FFFDA6A13C1D28C0D8 /* InputToolbar.swift in Sources */,
+				3D5E7F9A1B2C4D6E8F0A1B3C /* URLHandler.swift in Sources */,
+				5F7A9B0C1D2E3F4A6B8C9D0E /* Logger.swift in Sources */,
 				C0650255DB35703E5F82A78A /* LogContentViewController.swift in Sources */,
 				6A93A5D14163E6C5C25FD0C6 /* LogManagerViewController.swift in Sources */,
 				D6CF5D3E6EBDB80899386783 /* MUDSocket.swift in Sources */,

@@ -7,6 +7,7 @@ extension Notification.Name {
     static let triggerDidFire = Notification.Name("triggerDidFire")
     static let triggerSoundRequested = Notification.Name("triggerSoundRequested")
     static let triggerVibrationRequested = Notification.Name("triggerVibrationRequested")
+    static let omitLineFromOutput = Notification.Name("OmitLineFromOutput")
 }
 
 @objc(World)
@@ -54,14 +55,39 @@ public class World: NSManagedObject, LoggableWorld {
     
     var canSave: Bool {
         guard let hostname = hostname, !hostname.isEmpty else { return false }
-        return port > 0 && port <= UInt16.max
+        return World.isValidPort(Int(port))
+    }
+    
+    // MARK: - Port Validation
+    
+    /// Validates a port number with comprehensive checks
+    /// - Parameter port: The port number to validate
+    /// - Returns: true if port is valid, false otherwise
+    static func isValidPort(_ port: Int) -> Bool {
+        return port > 0 && port <= 65535
+    }
+    
+    /// Validates a port number and provides detailed error message
+    /// - Parameter port: The port number to validate
+    /// - Returns: nil if valid, error message if invalid
+    static func validatePort(_ port: Int) -> String? {
+        if port <= 0 {
+            return "Port number must be greater than 0."
+        }
+        if port > 65535 {
+            return "Port number must be 65535 or less."
+        }
+        if port < 1024 {
+            return "Warning: Port \(port) is a privileged port. Standard MUD servers typically use ports 1024-65535. Are you sure this is correct?"
+        }
+        return nil
     }
     
     // MARK: - Creation Methods
     
     static func createWorld(in context: NSManagedObjectContext) -> World {
         let world = World(context: context)
-        world.port = 23
+        world.port = AppConstants.Network.defaultTelnetPort
         world.isDefault = false
         world.isSecure = false
         world.isHidden = false
@@ -430,7 +456,7 @@ public class World: NSManagedObject, LoggableWorld {
         // Handle line omission
         if shouldOmitLine {
             NotificationCenter.default.post(
-                name: NSNotification.Name("OmitLineFromOutput"),
+                name: .omitLineFromOutput,
                 object: self,
                 userInfo: ["line": line]
             )
@@ -454,24 +480,9 @@ public class World: NSManagedObject, LoggableWorld {
     }
     
     // MARK: - Variable Management
-    
-    func setVariable(_ key: String, value: String) {
-        // Variables are not managed in the Core Data model
-    }
-    
-    func getVariable(_ key: String) -> String? {
-        // Variables are not managed in the Core Data model
-        return nil
-    }
-    
-    func removeVariable(_ key: String) {
-        // Variables are not managed in the Core Data model
-    }
-    
-    func getAllVariables() -> [String: String] {
-        // Variables are not managed in the Core Data model
-        return [:]
-    }
+    // Note: Variables are managed by triggers at runtime and are not persisted
+    // to the Core Data model. They are stored in trigger.capturedVariables
+    // and are ephemeral (only exist during the session).
 }
 
 // MARK: - Core Data Fetch Request

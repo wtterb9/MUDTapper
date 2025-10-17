@@ -189,9 +189,9 @@ class KeychainManager {
             // Mark migration as complete
             UserDefaults.standard.set(true, forKey: "KeychainMigrationCompleted")
             
-            print("KeychainManager: Successfully migrated \(worldsWithPasswords.count) passwords to Keychain")
+            Logger.info("Successfully migrated \(worldsWithPasswords.count) passwords to Keychain", category: Logger.coreData)
         } catch {
-            print("KeychainManager: Error migrating passwords: \(error)")
+            Logger.error("Error migrating passwords from Core Data to Keychain", error: error, category: Logger.coreData)
         }
     }
     
