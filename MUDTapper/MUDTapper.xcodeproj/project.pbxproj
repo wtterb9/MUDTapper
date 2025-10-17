@@ -16,6 +16,7 @@
 		9B0C1D2E3F4A5B6C7D8E9F0A /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1D2E3F4A5B6C7D8E9F0A1B /* AppConstants.swift */; };
 		0D1E2F3A4B5C6D7E8F9A0B1C /* RegexValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E2F3A4B5C6D7E8F9A0B1C2D /* RegexValidator.swift */; };
 		2F3A4B5C6D7E8F9A0B1C2D3E /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A4B5C6D7E8F9A0B1C2D3E4F /* EmptyStateView.swift */; };
+		4B5C6D7E8F9A0B1C2D3E4F5A /* CertificatePinning.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C6D7E8F9A0B1C2D3E4F5A6B /* CertificatePinning.swift */; };
 		0B914DBC526C0929883FFAB7 /* ANSIProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 662BE16596DDC3A6772B38ED /* ANSIProcessorTests.swift */; };
 		0E8D95DC952C8A92A3CF4757 /* MUDTapper.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 38E2007CBADA8A0B272E3570 /* MUDTapper.xcdatamodeld */; };
 		183986E0575BA848DD7470B1 /* WorldCardCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6251685F95C9F653B7B79E28 /* WorldCardCell.swift */; };
@@ -73,6 +74,7 @@
 		2C4D6E8F9A0B1C3D5E7F9A1B /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
 		3A4B5C6D7E8F9A0B1C2D3E4F /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
 		4E6F8A0B1C2D3E5F7A9B0C1D /* URLHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLHandler.swift; sourceTree = "<group>"; };
+		5C6D7E8F9A0B1C2D3E4F5A6B /* CertificatePinning.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CertificatePinning.swift; sourceTree = "<group>"; };
 		6A8B9C0D1E2F3A4B5C6D7E8F /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		8B9C0D1E2F3A4B5C6D7E8F9A /* ErrorPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ErrorPresenter.swift; sourceTree = "<group>"; };
 		04CBFE0E9639B868E0E679DE /* InputSettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputSettingsViewController.swift; sourceTree = "<group>"; };
@@ -137,6 +139,7 @@
 			isa = PBXGroup;
 			children = (
 				F31BCF0F9BED62CA01FBD1FE /* ANSIProcessor.swift */,
+				5C6D7E8F9A0B1C2D3E4F5A6B /* CertificatePinning.swift */,
 				9826045CE86A954433BD3637 /* MUDSocket.swift */,
 			);
 			path = Network;
@@ -336,6 +339,7 @@
 			files = (
 				9AC30ABFF7B28764F27A9CB4 /* ANSIProcessor.swift in Sources */,
 				9640BA875AD82CAC9CE560DD /* AdvancedAutomationViewController.swift in Sources */,
+				4B5C6D7E8F9A0B1C2D3E4F5A /* CertificatePinning.swift in Sources */,
 				393D16423CC28BA3C11B2BC5 /* Alias.swift in Sources */,
 				7B401A1DC9B676F1D9FA8850 /* AliasEditorViewController.swift in Sources */,
 				9B0C1D2E3F4A5B6C7D8E9F0A /* AppConstants.swift in Sources */,
