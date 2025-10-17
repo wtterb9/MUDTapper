@@ -93,8 +93,7 @@ class SettingsHubViewController: SettingsViewController {
             ) { [weak self] in
                 let vc = WorldEditController(world: world)
                 vc.delegate = self as? WorldEditControllerDelegate
-                let navController = UINavigationController(rootViewController: vc)
-                return navController
+                return vc
             },
             NavigationSettingsItem(
                 title: "🌍 World Management",
