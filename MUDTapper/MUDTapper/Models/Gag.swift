@@ -1,6 +1,7 @@
 import Foundation
 import CoreData
 
+/// Gag type determines how text matching is performed
 enum GagType: Int32, CaseIterable {
     case contains = 0
     case exact = 1
@@ -22,6 +23,10 @@ enum GagType: Int32, CaseIterable {
     }
 }
 
+/// Represents a gag rule for filtering/hiding server output
+///
+/// Gags prevent matching lines from being displayed to the user.
+/// Useful for filtering spam, repeated messages, or unwanted content.
 @objc(Gag)
 public class Gag: NSManagedObject {
     

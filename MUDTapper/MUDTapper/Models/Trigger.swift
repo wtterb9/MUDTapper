@@ -2,6 +2,11 @@ import Foundation
 import CoreData
 import UIKit
 
+/// Represents a MushClient-style trigger for automated text matching and response
+///
+/// Triggers can match text using various methods (wildcard, regex, exact, substring, etc.)
+/// and execute commands, play sounds, highlight text, or run Lua scripts when matched.
+/// Supports advanced features like variable capture, conditional logic, and priority ordering.
 @objc(Trigger)
 public class Trigger: NSManagedObject {
     
@@ -198,17 +203,20 @@ public class Trigger: NSManagedObject {
             return cached
         }
         
-        // Compile regex based on trigger type
+        // Compile regex based on trigger type with validation
         let compiled: NSRegularExpression?
         switch triggerTypeEnum {
         case .regex:
-            compiled = try? NSRegularExpression(pattern: pattern, options: options)
+            // Use safe compilation with validation
+            compiled = RegexValidator.safeCompile(pattern: pattern, options: options)
         case .wildcard:
             // Convert MushClient wildcard to regex
             var regexPattern = NSRegularExpression.escapedPattern(for: pattern)
             regexPattern = regexPattern.replacingOccurrences(of: "\\*", with: "(.*?)")  // * any text
             regexPattern = regexPattern.replacingOccurrences(of: "\\?", with: "(.)")    // ? any single char
-            compiled = try? NSRegularExpression(pattern: "^" + regexPattern + "$", options: options)
+            let fullPattern = "^" + regexPattern + "$"
+            // Use safe compilation with validation
+            compiled = RegexValidator.safeCompile(pattern: fullPattern, options: options)
         default:
             compiled = nil
         }
@@ -223,6 +231,9 @@ public class Trigger: NSManagedObject {
     
     // MARK: - MushClient-Style Matching Logic
     
+    /// Check if this trigger matches the given line of text
+    /// - Parameter line: The line of text to test
+    /// - Returns: true if the trigger matches, false otherwise
     func matches(line: String) -> Bool {
         guard isActive else { return false }
         guard let pattern = trigger, !pattern.isEmpty else { return false }
@@ -576,6 +587,9 @@ public class Trigger: NSManagedObject {
     
     // MARK: - MushClient-Style Trigger Execution
     
+    /// Execute this trigger for a matched line
+    /// - Parameter line: The line of text that matched
+    /// - Returns: true if other triggers should continue evaluating (keepEvaluating), false to stop
     func execute(for line: String) -> Bool {
         guard matches(line: line) else { return false }
         

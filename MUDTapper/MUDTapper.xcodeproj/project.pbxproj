@@ -14,6 +14,7 @@
 		5F7A9B0C1D2E3F4A6B8C9D0E /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A8B9C0D1E2F3A4B5C6D7E8F /* Logger.swift */; };
 		7A9B0C1D2E3F4A5B6C7D8E9F /* ErrorPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B9C0D1E2F3A4B5C6D7E8F9A /* ErrorPresenter.swift */; };
 		9B0C1D2E3F4A5B6C7D8E9F0A /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C1D2E3F4A5B6C7D8E9F0A1B /* AppConstants.swift */; };
+		0D1E2F3A4B5C6D7E8F9A0B1C /* RegexValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E2F3A4B5C6D7E8F9A0B1C2D /* RegexValidator.swift */; };
 		0B914DBC526C0929883FFAB7 /* ANSIProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 662BE16596DDC3A6772B38ED /* ANSIProcessorTests.swift */; };
 		0E8D95DC952C8A92A3CF4757 /* MUDTapper.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = 38E2007CBADA8A0B272E3570 /* MUDTapper.xcdatamodeld */; };
 		183986E0575BA848DD7470B1 /* WorldCardCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6251685F95C9F653B7B79E28 /* WorldCardCell.swift */; };
@@ -67,6 +68,7 @@
         0F1E2D3C4B5A697887766554 /* SessionVitalsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionVitalsStore.swift; sourceTree = "<group>"; };
 		03BFF6C83A25A27685814871 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		0C1D2E3F4A5B6C7D8E9F0A1B /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
+		1E2F3A4B5C6D7E8F9A0B1C2D /* RegexValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegexValidator.swift; sourceTree = "<group>"; };
 		2C4D6E8F9A0B1C3D5E7F9A1B /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
 		4E6F8A0B1C2D3E5F7A9B0C1D /* URLHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLHandler.swift; sourceTree = "<group>"; };
 		6A8B9C0D1E2F3A4B5C6D7E8F /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
@@ -168,6 +170,7 @@
 				837B41FD87CA90409494345B /* NotificationManager.swift */,
 				B641755D33EC5B6623194F5D /* PersistenceController.swift */,
 				2A32DA433CA882F2FE5A75B4 /* RadialControl.swift */,
+				1E2F3A4B5C6D7E8F9A0B1C2D /* RegexValidator.swift */,
 				A28B7077722BD5C0C5596E3A /* SessionLogger.swift */,
 				48E7182CE92C217545AE0619 /* SilentAudioManager.swift */,
 				0B3D1160D5249EE7267D9F6D /* ThemeManager.swift */,
@@ -353,6 +356,7 @@
 				9EC63955B3419DE33449EF49 /* NotificationManager.swift in Sources */,
 				2308EA878FBBDB769DF22E25 /* PersistenceController.swift in Sources */,
 				3A7ADD635DABBCF0D05E4FB3 /* RadialControl.swift in Sources */,
+				0D1E2F3A4B5C6D7E8F9A0B1C /* RegexValidator.swift in Sources */,
 				86771E54FCDC65C4F6BC26BA /* SceneDelegate.swift in Sources */,
 				EE9EF7F7FE20ECF7A6CA0DE6 /* SessionDashboardViewController.swift in Sources */,
 				833CB26113E0CB920DDCE021 /* SessionLogger.swift in Sources */,

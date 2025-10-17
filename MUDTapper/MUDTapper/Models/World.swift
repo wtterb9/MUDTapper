@@ -10,6 +10,10 @@ extension Notification.Name {
     static let omitLineFromOutput = Notification.Name("OmitLineFromOutput")
 }
 
+/// Represents a MUD world/server configuration with associated automation
+/// 
+/// A World object stores all connection details and relationships to triggers, aliases, gags, and tickers.
+/// Worlds can be marked as favorites, hidden (soft delete), or set as the default connection.
 @objc(World)
 public class World: NSManagedObject, LoggableWorld {
     
@@ -130,6 +134,8 @@ public class World: NSManagedObject, LoggableWorld {
     
     // MARK: - Default World Management
     
+    /// Sets this world as the default connection
+    /// Automatically unsets any other default worlds
     func setAsDefaultWorld() {
         guard !isDefault else { return }
         
@@ -333,6 +339,9 @@ public class World: NSManagedObject, LoggableWorld {
     
     // MARK: - Alias Processing
     
+    /// Processes input text to check if it matches any active alias
+    /// - Parameter input: The user's input command
+    /// - Returns: Array of commands to execute if alias matches, nil otherwise
     func commandsForMatchingAlias(input: String) -> [String]? {
         guard !input.isEmpty else { return nil }
         
@@ -372,6 +381,10 @@ public class World: NSManagedObject, LoggableWorld {
     
     // MARK: - MushClient-Style Trigger Processing
     
+    /// Process incoming server text through all active triggers
+    /// - Parameters:
+    ///   - text: The raw text from the server
+    ///   - loggingCallback: Optional callback to handle logging (line, shouldLog)
     func processTriggersForText(_ text: String, loggingCallback: ((String, Bool) -> Void)? = nil) {
         guard let context = managedObjectContext else { return }
         

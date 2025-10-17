@@ -1,6 +1,10 @@
 import Foundation
 import CoreData
 
+/// Represents a timed command executor (ticker)
+///
+/// Tickers automatically execute commands at regular intervals.
+/// Useful for repeated actions like healing, status checks, or auto-walking.
 @objc(Ticker)
 public class Ticker: NSManagedObject {
     

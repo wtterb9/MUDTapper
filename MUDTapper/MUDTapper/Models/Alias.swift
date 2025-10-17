@@ -1,6 +1,10 @@
 import Foundation
 import CoreData
 
+/// Represents a command alias with parameter substitution support
+///
+/// Aliases allow short commands to expand into longer command sequences.
+/// Supports parameter substitution using $1$, $2$, $*$ notation.
 @objc(Alias)
 public class Alias: NSManagedObject {
     
@@ -43,6 +47,9 @@ public class Alias: NSManagedObject {
     
     // MARK: - Alias Command Processing
     
+    /// Process input through this alias, substituting parameters as needed
+    /// - Parameter input: The full user input that triggered this alias
+    /// - Returns: Array of commands to execute with parameter substitution applied
     func aliasCommands(for input: String) -> [String] {
         guard let commands = commands else { return [] }
         
