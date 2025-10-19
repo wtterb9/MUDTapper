@@ -221,6 +221,8 @@ class InputSettingsViewController: SettingsViewController {
             let key = "RadialButton\(buttonIndex)_\(direction.rawValue)"
             UserDefaults.standard.removeObject(forKey: key)
         }
+        // Notify MudView to update labels
+        NotificationCenter.default.post(name: Notification.Name("RadialControlCommandsChanged"), object: nil)
     }
 
     private func resetAllRadialCommands() {

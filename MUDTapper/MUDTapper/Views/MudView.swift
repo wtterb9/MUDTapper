@@ -760,6 +760,7 @@ class RadialDirectionalPad: UIView {
         setupUI()
         setupGestures()
         NotificationCenter.default.addObserver(self, selector: #selector(updateStyle), name: Notification.Name("RadialControlStyleChanged"), object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(updateCommands), name: Notification.Name("RadialControlCommandsChanged"), object: nil)
     }
     
     override init(frame: CGRect) {
@@ -827,12 +828,24 @@ class RadialDirectionalPad: UIView {
     private func setupDirectionLabels() {
         for direction in RadialDirection.allCases {
             let label = CATextLayer()
-            label.string = direction.rawValue
+            label.string = getCommandForDirection(direction)
             label.fontSize = 12
             label.alignmentMode = .center
             label.contentsScale = UIScreen.main.scale
             layer.addSublayer(label)
             directionLabels.append(label)
+        }
+    }
+    
+    private func getCommandForDirection(_ direction: RadialDirection) -> String {
+        let key = "RadialButton\(buttonIndex)_\(direction.rawValue)"
+        return UserDefaults.standard.string(forKey: key) ?? direction.defaultCommand
+    }
+    
+    private func updateDirectionLabels() {
+        for (index, direction) in RadialDirection.allCases.enumerated() {
+            let label = directionLabels[index]
+            label.string = getCommandForDirection(direction)
         }
     }
     
@@ -849,6 +862,11 @@ class RadialDirectionalPad: UIView {
     
     @objc private func updateStyle() {
         applyTheme()
+        setNeedsLayout()
+    }
+    
+    @objc private func updateCommands() {
+        updateDirectionLabels()
         setNeedsLayout()
     }
     

@@ -4030,6 +4030,9 @@ extension ClientViewController {
                 }
             }
             
+            // Notify MudView to update labels
+            NotificationCenter.default.post(name: Notification.Name("RadialControlCommandsChanged"), object: nil)
+            
             // Refresh the radial controls
             self?.mudView?.resetAllRadialControls()
             
@@ -4157,6 +4160,8 @@ extension ClientViewController {
             
             alert.addAction(UIAlertAction(title: title, style: .default) { [weak self] _ in
                 UserDefaults.standard.set(command, forKey: key)
+                // Notify MudView to update labels
+                NotificationCenter.default.post(name: Notification.Name("RadialControlCommandsChanged"), object: nil)
                 // Command updated silently - return to radial customization menu
                 self?.showRadialCommandCustomization(for: buttonIndex)
             })
@@ -4170,6 +4175,8 @@ extension ClientViewController {
         // Reset to default
         alert.addAction(UIAlertAction(title: "🔄 Reset to Default (\(direction.defaultCommand))", style: .destructive) { [weak self] _ in
             UserDefaults.standard.removeObject(forKey: key)
+            // Notify MudView to update labels
+            NotificationCenter.default.post(name: Notification.Name("RadialControlCommandsChanged"), object: nil)
             // Command reset silently - return to radial customization menu
             self?.showRadialCommandCustomization(for: buttonIndex)
         })
@@ -4204,6 +4211,8 @@ extension ClientViewController {
         alert.addAction(UIAlertAction(title: "Save", style: .default) { [weak self] _ in
             if let command = alert.textFields?[0].text?.trimmingCharacters(in: .whitespacesAndNewlines), !command.isEmpty {
                 UserDefaults.standard.set(command, forKey: key)
+                // Notify MudView to update labels
+                NotificationCenter.default.post(name: Notification.Name("RadialControlCommandsChanged"), object: nil)
                 // Command updated silently - return to radial customization menu
                 self?.showRadialCommandCustomization(for: buttonIndex)
             }
@@ -4225,6 +4234,8 @@ extension ClientViewController {
                 let key = "RadialButton\(buttonIndex)_\(direction.rawValue)"
                 UserDefaults.standard.removeObject(forKey: key)
             }
+            // Notify MudView to update labels
+            NotificationCenter.default.post(name: Notification.Name("RadialControlCommandsChanged"), object: nil)
             // Radial commands reset silently - return to radial controls menu
             self?.showPersistentRadialControlMenu()
         })
