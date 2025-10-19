@@ -1847,19 +1847,26 @@ class MUDSocket: NSObject {
     private func startDecompression() {
         guard decompressionStreamInitialized == false else { return }
         // Initialize empty stream struct; fields will be set by compression_stream_init
-        var stream = compression_stream(dst_ptr: UnsafeMutablePointer<UInt8>.allocate(capacity: 0), dst_size: 0, src_ptr: UnsafePointer<UInt8>(bitPattern: 0)!, src_size: 0, state: nil)
+        let dstBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 0)
+        let srcBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: 0)
+        var stream = compression_stream(dst_ptr: dstBuffer, dst_size: 0, src_ptr: UnsafePointer(srcBuffer), src_size: 0, state: nil)
         let status = compression_stream_init(&stream, COMPRESSION_STREAM_DECODE, COMPRESSION_ZLIB)
         if status == COMPRESSION_STATUS_OK {
             decompressionStream = stream
             decompressionStreamInitialized = true
         } else {
-            print("[MCCP] Failed to initialize decompression stream")
+            dstBuffer.deallocate()
+            srcBuffer.deallocate()
+            Logger.error("Failed to initialize decompression stream", category: Logger.network)
         }
     }
 
     private func endDecompression() {
         if decompressionStreamInitialized, var stream = decompressionStream {
             compression_stream_destroy(&stream)
+            // Deallocate the buffers that were allocated in startDecompression
+            stream.dst_ptr.deallocate()
+            UnsafeMutablePointer(mutating: stream.src_ptr).deallocate()
         }
         decompressionStream = nil
         decompressionStreamInitialized = false
