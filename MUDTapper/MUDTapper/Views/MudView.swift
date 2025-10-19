@@ -867,6 +867,10 @@ class RadialDirectionalPad: UIView {
     
     @objc private func updateCommands() {
         updateDirectionLabels()
+        // Update the active direction label if there's a current direction
+        if let direction = currentDirection {
+            activeDirectionLabel.string = getCommandForDirection(direction)
+        }
         setNeedsLayout()
     }
     
@@ -907,7 +911,7 @@ class RadialDirectionalPad: UIView {
         CATransaction.begin()
         CATransaction.setAnimationDuration(0.2)
         for label in directionLabels {
-            label.opacity = show ? 1.0 : 0.7
+            label.opacity = show ? 1.0 : 0.0
         }
         CATransaction.commit()
     }
@@ -957,6 +961,11 @@ class RadialDirectionalPad: UIView {
     }
     
     private func updateDirectionIndicator() {
+        // Hide all direction labels first
+        for label in directionLabels {
+            label.opacity = 0.0
+        }
+        
         guard let direction = currentDirection else {
             directionIndicator.path = nil
             activeDirectionLabel.isHidden = true
@@ -973,8 +982,14 @@ class RadialDirectionalPad: UIView {
         let indicatorPath = UIBezierPath(arcCenter: CGPoint(x: x, y: y), radius: indicatorRadius, startAngle: 0, endAngle: .pi * 2, clockwise: true)
         directionIndicator.path = indicatorPath.cgPath
         
-        // Update active direction label
-        activeDirectionLabel.string = direction.rawValue
+        // Show only the active direction label
+        if let directionIndex = RadialDirection.allCases.firstIndex(of: direction) {
+            let activeLabel = directionLabels[directionIndex]
+            activeLabel.opacity = 1.0
+        }
+        
+        // Update active direction label (center label)
+        activeDirectionLabel.string = getCommandForDirection(direction)
         activeDirectionLabel.frame = CGRect(x: x - 20, y: y - 12, width: 40, height: 24)
         activeDirectionLabel.isHidden = false
         activeDirectionLabel.opacity = 0.8
@@ -1073,7 +1088,8 @@ class RadialDirectionalPad: UIView {
             let x = centerPoint.x + cos(angle - .pi/2) * labelRadius
             let y = centerPoint.y + sin(angle - .pi/2) * labelRadius
             label.frame = CGRect(x: x - 15, y: y - 8, width: 30, height: 16)
-            label.opacity = labelAlpha
+            // Hide labels by default, only show when actively engaged
+            label.opacity = isActive && currentDirection == direction ? 1.0 : 0.0
             label.fontSize = labelFontSize
             label.foregroundColor = themeManager.terminalTextColor.cgColor
         }
