@@ -113,7 +113,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             UserDefaultsKeys.radialControlStyle: RadialControlStyle.minimal.rawValue,
             UserDefaultsKeys.radialControlOpacity: 1.0,
             UserDefaultsKeys.radialControlSize: 1.0,
-            UserDefaultsKeys.radialControlLabelsVisible: false,
+            UserDefaultsKeys.radialControlLabelsVisible: true,
             UserDefaultsKeys.topBarAlwaysVisible: false,
             UserDefaultsKeys.autocapitalization: false,
             UserDefaultsKeys.semicolonCommands: true,

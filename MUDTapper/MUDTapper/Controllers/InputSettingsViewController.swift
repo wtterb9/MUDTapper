@@ -134,7 +134,7 @@ class InputSettingsViewController: SettingsViewController {
                 title: "Show Labels",
                 accessibilityHint: "Show direction labels on radial controls",
                 userDefaultsKey: UserDefaultsKeys.radialControlLabelsVisible,
-                defaultValue: false
+                defaultValue: true
             )
         ]
 
