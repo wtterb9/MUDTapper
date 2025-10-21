@@ -1095,9 +1095,13 @@ extension ClientContainer: UIGestureRecognizerDelegate {
         
         // Don't interfere with touches on the MudView (for long press line selection)
         if let touchView = touch.view, touchView.isDescendant(of: currentClientViewController?.view ?? UIView()) {
-            // If this is a tap gesture and the touch is on the client view, don't handle it
+            // Allow taps on the dimmed client area to close the side menu when it's open
             if gestureRecognizer is UITapGestureRecognizer {
-                return false
+                if isShowingSideMenu {
+                    // Defer to the tap handler below to decide if tap is outside the menu
+                } else {
+                    return false
+                }
             }
         }
         

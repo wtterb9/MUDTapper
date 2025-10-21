@@ -510,7 +510,18 @@ extension WorldDisplayController: UITableViewDelegate {
             }
             editAction.backgroundColor = .systemBlue
             
-            let configuration = UISwipeActionsConfiguration(actions: [deleteAction, editAction])
+            // Clone action
+            let cloneAction = UIContextualAction(style: .normal, title: "Clone") { [weak self] (action, view, completion) in
+                world.deepClone {
+                    DispatchQueue.main.async {
+                        self?.tableView.reloadData()
+                    }
+                    completion(true)
+                }
+            }
+            cloneAction.backgroundColor = .systemPurple
+            
+            let configuration = UISwipeActionsConfiguration(actions: [deleteAction, editAction, cloneAction])
             configuration.performsFirstActionWithFullSwipe = false
             return configuration
         }

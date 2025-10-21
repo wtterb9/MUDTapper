@@ -456,6 +456,14 @@ class EnhancedWorldManagementViewController: UIViewController {
             self?.duplicateWorld(world)
         })
         
+        alert.addAction(UIAlertAction(title: "🧬 Clone", style: .default) { [weak self] _ in
+            // Perform a deep clone (copy automation too) but do not auto-load
+            world.deepClone { [weak self] in
+                self?.refreshWorlds()
+                self?.showAlert(title: "World Cloned", message: "Created a full clone of \(world.name ?? "the world").")
+            }
+        })
+        
         let favoriteTitle = world.isFavorite ? "💔 Remove from Favorites" : "❤️ Add to Favorites"
         alert.addAction(UIAlertAction(title: favoriteTitle, style: .default) { [weak self] _ in
             self?.toggleWorldFavorite(world)

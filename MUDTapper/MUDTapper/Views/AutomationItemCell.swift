@@ -381,7 +381,6 @@ class AutomationSummaryCell: UITableViewCell {
     private let summaryStackView = UIStackView()
     private let totalLabel = UILabel()
     private let enabledLabel = UILabel()
-    private let activeLabel = UILabel()
     private let recentActivityLabel = UILabel()
     
     // MARK: - Initialization
@@ -416,7 +415,7 @@ class AutomationSummaryCell: UITableViewCell {
     }
     
     private func setupLabels() {
-        let labels = [totalLabel, enabledLabel, activeLabel, recentActivityLabel]
+        let labels = [totalLabel, enabledLabel, recentActivityLabel]
         
         for label in labels {
             label.textAlignment = .center
@@ -455,7 +454,6 @@ class AutomationSummaryCell: UITableViewCell {
     func configure(with items: [AdvancedAutomationViewController.AutomationItem], type: AdvancedAutomationViewController.AutomationType) {
         let total = items.count
         let enabled = items.filter { $0.isEnabled }.count
-        let active = items.filter { $0.isActive }.count
         let recentlyUsed = items.filter { 
             guard let lastTriggered = $0.lastTriggered else { return false }
             return lastTriggered.timeIntervalSinceNow > -86400 // Last 24 hours
@@ -467,16 +465,13 @@ class AutomationSummaryCell: UITableViewCell {
         enabledLabel.text = "\(enabled)\nEnabled"
         enabledLabel.textColor = enabled > 0 ? .systemGreen : .secondaryLabel
         
-        activeLabel.text = "\(active)\nActive"
-        activeLabel.textColor = active > 0 ? .systemOrange : .secondaryLabel
-        
         recentActivityLabel.text = "\(recentlyUsed)\nRecent"
         recentActivityLabel.textColor = recentlyUsed > 0 ? .systemBlue : .secondaryLabel
         
         // Accessibility
         isAccessibilityElement = true
         accessibilityLabel = """
-        \(type.title) Overview: \(total) total, \(enabled) enabled, \(active) active, \(recentlyUsed) used in last 24 hours
+        \(type.title) Overview: \(total) total, \(enabled) enabled, \(recentlyUsed) used in last 24 hours
         """
         accessibilityTraits = .staticText
     }

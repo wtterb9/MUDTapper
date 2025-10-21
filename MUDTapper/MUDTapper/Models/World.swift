@@ -246,11 +246,27 @@ public class World: NSManagedObject, LoggableWorld {
             }
             
             let newWorld = World.createWorld(in: context)
-            newWorld.name = sourceWorld.name
+            // Generate a unique name like "<Name> Copy", "<Name> Copy 2", ...
+            let baseName = (sourceWorld.name?.isEmpty == false) ? (sourceWorld.name ?? "World") : "World"
+            var candidateName = "\(baseName) Copy"
+            var suffix = 2
+            let nameRequest: NSFetchRequest<World> = World.fetchRequest()
+            nameRequest.fetchLimit = 1
+            nameRequest.predicate = NSPredicate(format: "name == %@", candidateName)
+            while (try? context.count(for: nameRequest)) ?? 0 > 0 {
+                candidateName = "\(baseName) Copy \(suffix)"
+                nameRequest.predicate = NSPredicate(format: "name == %@", candidateName)
+                suffix += 1
+            }
+            newWorld.name = candidateName
             newWorld.hostname = sourceWorld.hostname
             newWorld.port = sourceWorld.port
             newWorld.isSecure = sourceWorld.isSecure
             newWorld.connectCommand = sourceWorld.connectCommand
+            newWorld.autoConnect = sourceWorld.autoConnect
+            newWorld.isHidden = false
+            newWorld.isFavorite = false
+            newWorld.lastModified = Date()
             
             // Clone triggers
             if let triggers = sourceWorld.triggers {

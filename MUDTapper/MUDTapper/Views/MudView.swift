@@ -868,9 +868,6 @@ class RadialDirectionalPad: UIView {
     @objc private func updateCommands() {
         updateDirectionLabels()
         // Update the active direction label if there's a current direction
-        if let direction = currentDirection {
-            activeDirectionLabel.string = getCommandForDirection(direction)
-        }
         setNeedsLayout()
     }
     
@@ -911,7 +908,7 @@ class RadialDirectionalPad: UIView {
         CATransaction.begin()
         CATransaction.setAnimationDuration(0.2)
         for label in directionLabels {
-            label.opacity = show ? 1.0 : 0.0
+            label.opacity = 0.0
         }
         CATransaction.commit()
     }
@@ -985,23 +982,20 @@ class RadialDirectionalPad: UIView {
         // Show only the active direction label
         if let directionIndex = RadialDirection.allCases.firstIndex(of: direction) {
             let activeLabel = directionLabels[directionIndex]
+            activeLabel.string = getCommandForDirection(direction)
             activeLabel.opacity = 1.0
         }
         
         // Update active direction label (center label)
-        activeDirectionLabel.string = getCommandForDirection(direction)
-        activeDirectionLabel.frame = CGRect(x: x - 20, y: y - 12, width: 40, height: 24)
-        activeDirectionLabel.isHidden = false
-        activeDirectionLabel.opacity = 0.8
-        activeDirectionLabel.foregroundColor = themeManager.linkColor.cgColor
-    }
-    
-    private func resetControl() {
-        isActive = false
-        currentDirection = nil
-        showDirectionIndicator(false)
         activeDirectionLabel.isHidden = true
-    }
+        }
+        
+        private func resetControl() {
+            isActive = false
+            currentDirection = nil
+            showDirectionIndicator(false)
+            activeDirectionLabel.isHidden = true
+        }
     
     // Add a safety timer to reset the control if it gets stuck
     private var resetTimer: Timer?

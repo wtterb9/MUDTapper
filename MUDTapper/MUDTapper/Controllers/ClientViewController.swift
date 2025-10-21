@@ -816,6 +816,14 @@ class ClientViewController: UIViewController, MudViewDelegate, WorldEditControll
             self?.showConnectionSettings(world: world)
         })
         
+        alert.addAction(UIAlertAction(title: "🧬 Clone World", style: .default) { _ in
+            world.deepClone {
+                // Do not auto-load the new session; just leave it available in the list
+                // Optionally show a lightweight confirmation toast/alert
+                ErrorPresenter.showError(title: "World Cloned", message: "A full clone has been added to your worlds.")
+            }
+        })
+        
         alert.addAction(UIAlertAction(title: "❓ Help: World Setup", style: .default) { [weak self] _ in
             self?.showWorldSetupHelp()
         })
